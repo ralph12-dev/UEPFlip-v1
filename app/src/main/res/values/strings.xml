@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">UEPflip_flashcard</string>
+    <string name="reveal_answer">Reveal Answer</string>
+    <string name="hard">Hard</string>
+    <string name="medium">Medium</string>
+    <string name="easy">Easy</string>
+    <string name="study_complete">Session Complete!\nYou have reviewed all cards.</string>
+    <string name="no_decks_yet">No decks yet</string>
+    <string name="tap_fab_to_create_deck">Tap the + button to create your first deck</string>
+    <string name="create_new_deck">Create new deck</string>
+    <string name="deck_cards_count">%d cards</string>
+    <string name="title_activity_deck_list">My Decks</string>
+    <string name="deck_title_hint">Deck title</string>
+    <string name="deck_description_hint">Description (optional)</string>
+    <string name="btn_create_deck">Create Deck</string>
+    <string name="btn_save">Save</string>
+</resources>
