@@ -76,7 +76,8 @@ calls on the JVM don't throw.
 
 - Everything is now one app on the fragment shell in `ui/main`: `MainActivity` (launcher) hosts
   Home / Decks / Stats / Tutor tabs plus pushed detail screens `CreateFragment` and `StudyFragment`.
-  All of it reads and writes Room; there is no demo data left.
+  All of it reads and writes Room; there is no hardcoded demo data in the UI layer (debug builds do
+  seed real rows on first launch — see "Sample data").
 - `MainActivity.show(...)` is for top-level destinations (clears the back stack), `push(...)` for
   detail screens. `MainActivity.goStudy(deckId)` / `goCreate()` / `goHome()` / `goDecks()` are the
   entry points fragments should use.
@@ -113,9 +114,25 @@ calls on the JVM don't throw.
   Firebase Remote Config under the key `gemini_api_key` (default empty → AI import stays disabled until
   configured).
 
+## Sample data (debug builds only)
+
+- `data/sample/SampleDataSeeder.seedIfFirstRun(context)` fills a **debuggable** build with four
+  realistic decks — one untouched, one partly mature, one mostly mature, one fully overdue — plus
+  their cards and a review history, so Home / My Decks / Statistics / Study all have something real
+  to show without a Gemini key. `MainActivity.onCreate` calls it once, off the main thread.
+- It is deliberately inert in product builds: it returns immediately unless
+  `ApplicationInfo.FLAG_DEBUGGABLE` is set, it only writes when the database is empty, and it records
+  in the `uepflip_sample_data` prefs that it ran, so deleting the sample decks keeps them deleted.
+  Clear the app's data to make the samples appear again.
+- Sample cards are derived from the real SM-2 step sequence (`INTERVAL_STEPS`), so a seeded card still
+  schedules sensibly once it is reviewed for real. `SampleDataSeederTest` asserts the data actually
+  yields due cards, mature cards, future-scheduled cards, an untouched deck, an overdue deck and
+  history consistent with each card's interval.
+
 ## Repo hygiene
 
-- The root is full of untracked scratch build logs (`build*.txt`, `build*.log`, `full_build*.txt`,
-  `latest_build.txt`, `fresh_build.txt`). Don't treat them as current status or commit them.
+- The root used to fill up with untracked scratch build logs (`build*.txt`, `build*.log`,
+  `full_build*`, `latest_build.txt`, `fresh_build.txt`); `.gitignore` now covers those, plus
+  `repo_backup.kt` and `gradle/libs.versions.toml.bak`/`.old`. Don't treat them as current status.
 - `local.properties` is gitignored (`sdk.dir` only). `handoff.md` was deleted from the working tree but
   is still available as prior-phase notes via `git show HEAD:handoff.md`.

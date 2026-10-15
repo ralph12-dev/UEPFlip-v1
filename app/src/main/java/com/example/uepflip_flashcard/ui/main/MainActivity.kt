@@ -8,8 +8,11 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
+import androidx.lifecycle.lifecycleScope
 import com.example.uepflip_flashcard.R
+import com.example.uepflip_flashcard.data.sample.SampleDataSeeder
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -54,6 +57,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (savedInstanceState == null) {
+            // Developer convenience: a fresh debug build starts with sample decks so every screen has
+            // something real to show. No-op outside debuggable builds (see SampleDataSeeder).
+            lifecycleScope.launch { SampleDataSeeder.seedIfFirstRun(applicationContext) }
+
             val onboardingSeen = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                 .getBoolean(KEY_ONBOARDING_COMPLETE, false)
             if (onboardingSeen) {
