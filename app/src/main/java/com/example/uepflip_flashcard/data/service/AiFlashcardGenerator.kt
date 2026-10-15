@@ -165,11 +165,14 @@ class AiFlashcardGenerator(
         """.trimIndent()
 
         val parsed = parseEvaluation(requestModelText(prompt))
-        val score = (parsed.score ?: 0).coerceIn(0, 100)
         val note = parsed.note?.trim().orEmpty()
-        if (note.isBlank()) {
+        val modelScore = parsed.score
+        // A missing score means the model never actually graded the answer. Fail the call rather
+        // than defaulting to 0, which would show the student a fabricated "0%" accuracy card.
+        if (modelScore == null || note.isBlank()) {
             throw AiGenerationException("The AI response was not in the expected format.")
         }
+        val score = modelScore.coerceIn(0, 100)
         return AnswerEvaluation(
             score = score,
             correct = parsed.correct ?: (score >= PASS_MARK),
@@ -206,7 +209,7 @@ class AiFlashcardGenerator(
     /** Performs the HTTPS call and returns the model's raw text part. */
     private suspend fun requestModelText(prompt: String): String = withContext(Dispatchers.IO) {
         if (apiKey.isBlank()) {
-            throw AiGenerationException("AI is not configured yet.")
+            throw AiGenerationException("AI features are not set up yet. Please try again later.")
         }
 
         val request = Request.Builder()

@@ -16,13 +16,3 @@ data class Deck(
     val mono: String,
     val review: String? = null
 )
-
-/**
- * UI-friendly card model used by StudyFragment (legacy source fragment).
- */
-data class StudyCard(
-    val id: Long,
-    val q: String,
-    val a: String,
-    val hint: String
-)

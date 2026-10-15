@@ -104,8 +104,11 @@ class TutorFragment : Fragment(R.layout.fragment_tutor) {
     private fun submitMessage() {
         val text = input.text.toString()
         if (text.isBlank()) return
-        input.text.clear()
-        viewModel.send(text)
+        // Clear the box only once the ViewModel has accepted the message. While a reply is in
+        // flight `send` refuses, and the text the user typed must survive instead of vanishing.
+        if (viewModel.send(text)) {
+            input.text.clear()
+        }
     }
 
     /** "Continue studying" returns to the session this tutor was opened from. */

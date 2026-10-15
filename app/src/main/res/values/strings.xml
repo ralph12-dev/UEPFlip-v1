@@ -36,6 +36,7 @@
     <string name="decks_filter_done">Completed</string>
     <string name="decks_empty">No decks yet. Tap \u201CNew deck\u201D to create one.</string>
     <string name="decks_no_matches">No decks match your search.</string>
+    <string name="decks_no_filter_matches">No decks match this filter.</string>
     <plurals name="deck_cards_count">
         <item quantity="one">%d card</item>
         <item quantity="other">%d cards</item>
@@ -71,6 +72,8 @@
     <string name="create_error_no_deck">Choose a deck before generating flashcards.</string>
     <string name="create_error_no_input">Enter a topic or paste your notes first.</string>
     <string name="create_error_empty_pdf">No text could be extracted from this PDF. Scanned images are not supported.</string>
+    <string name="create_error_pdf_too_large">That PDF is too large to process. Try a smaller file.</string>
+    <string name="create_error_pdf_unreadable">That PDF could not be read. It may be corrupt or password protected.</string>
     <string name="create_error_no_cards">The AI did not produce any flashcards. Try different material.</string>
     <string name="create_error_generic">Something went wrong while generating flashcards: %1$s</string>
     <string name="create_failed">Could not start generating flashcards: %1$s</string>
@@ -94,6 +97,7 @@
     <string name="easy">Easy</string>
     <string name="study_counter">%1$d / %2$d</string>
     <string name="no_cards_due">No cards are due right now. Great work!</string>
+    <string name="study_deck_empty">This deck has no cards yet. Create some with AI first.</string>
     <string name="study_request_hint">Request hint</string>
     <string name="study_ask_ai">Ask AI evaluator</string>
     <string name="study_hint_error">Could not get a hint: %1$s</string>
@@ -159,4 +163,5 @@
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
+    <string name="data_load_error">Could not load your data. Please try again.</string>
 </resources>

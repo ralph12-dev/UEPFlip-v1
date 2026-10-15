@@ -125,7 +125,7 @@ class AiFlashcardGeneratorTest {
             gen.generateFlashcards("notes")
             fail("Expected AiGenerationException")
         } catch (e: AiGenerationException) {
-            assertTrue(e.message!!.contains("not configured", ignoreCase = true))
+            assertTrue(e.message!!.contains("not set up", ignoreCase = true))
         }
     }
 
@@ -225,6 +225,19 @@ class AiFlashcardGeneratorTest {
         val evaluation = generator(200, envelope(inner)).evaluateAnswer("q", "a", "answer")
 
         assertEquals(false, evaluation.correct)
+    }
+
+    @Test
+    fun failsInsteadOfInventingAZeroScoreWhenTheModelOmitsTheScore() = runTest {
+        // A note on its own is not a grade; showing "0%" would be a fabricated judgement.
+        val inner = """{"note":"Looks about right.","explanation":"e"}"""
+
+        try {
+            generator(200, envelope(inner)).evaluateAnswer("q", "a", "answer")
+            fail("Expected AiGenerationException")
+        } catch (e: AiGenerationException) {
+            assertTrue(e.message!!.contains("expected format", ignoreCase = true))
+        }
     }
 
     @Test

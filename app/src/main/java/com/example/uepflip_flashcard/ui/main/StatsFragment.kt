@@ -12,7 +12,7 @@ import com.example.uepflip_flashcard.R
 import com.example.uepflip_flashcard.data.repository.FlashcardRepository
 import kotlinx.coroutines.launch
 
-class StatsFragment : Fragment(R.layout.fragment_stats) {
+class StatsFragment : Fragment(R.layout.fragment_stats), NavDestination {
 
     private val viewModel: StatsViewModel by lazy {
         ViewModelProvider(
@@ -57,7 +57,12 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
             state.recallRatePercent != null -> getString(R.string.stat_percent, state.recallRatePercent)
             else -> getString(R.string.stat_no_data)
         }
+        v.findViewById<TextView>(R.id.stat_empty).text = if (state.loadFailed) {
+            getString(R.string.data_load_error)
+        } else {
+            getString(R.string.stats_empty)
+        }
         v.findViewById<View>(R.id.stat_empty).visibility =
-            if (!loading && state.totalReviews == 0) View.VISIBLE else View.GONE
+            if (!loading && (state.loadFailed || state.totalReviews == 0)) View.VISIBLE else View.GONE
     }
 }

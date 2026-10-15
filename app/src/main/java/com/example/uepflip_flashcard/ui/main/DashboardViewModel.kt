@@ -9,6 +9,7 @@ import com.example.uepflip_flashcard.domain.DeckStats
 import com.example.uepflip_flashcard.ui.SimpleViewModelFactory
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
@@ -17,7 +18,8 @@ data class DashboardState(
     val decks: List<Deck> = emptyList(),
     val dueCardCount: Int = 0,
     val dueDeckCount: Int = 0,
-    val firstDueDeckId: Long? = null
+    val firstDueDeckId: Long? = null,
+    val loadFailed: Boolean = false
 )
 
 /**
@@ -43,6 +45,10 @@ class DashboardViewModel(private val repository: FlashcardRepository) : ViewMode
             dueDeckCount = dueDeckIds.size,
             firstDueDeckId = uiDecks.firstOrNull { it.id in dueDeckIds }?.id
         )
+    }.catch {
+        // A Room failure must not strand the screen in its loading visual (or crash the app);
+        // surface it so the UI can tell the user instead of showing an empty list forever.
+        emit(DashboardState(isLoading = false, loadFailed = true))
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),

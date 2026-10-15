@@ -13,9 +13,11 @@ import com.example.uepflip_flashcard.data.local.entities.DocumentEntity
 import com.example.uepflip_flashcard.data.service.AiFlashcardGenerator
 import com.example.uepflip_flashcard.data.service.AiGenerationException
 import com.example.uepflip_flashcard.data.service.AiGeneratorProvider
+import com.example.uepflip_flashcard.data.service.PdfExtractionException
 import com.example.uepflip_flashcard.data.service.PdfTextExtractor
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -95,6 +97,21 @@ class DocumentImportViewModel(private val application: Application) : ViewModel(
                 )
 
                 generateAndSave(extractedText, isTopic = false, deckId = deckId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: PdfExtractionException) {
+                // Tell the user the real reason rather than always blaming scanned images.
+                deleteDocument(documentId)
+                _uiState.value = UiState.Error(
+                    application.getString(
+                        when (e.reason) {
+                            PdfExtractionException.Reason.TOO_LARGE ->
+                                R.string.create_error_pdf_too_large
+                            PdfExtractionException.Reason.UNREADABLE ->
+                                R.string.create_error_pdf_unreadable
+                        }
+                    )
+                )
             } catch (e: AiGenerationException) {
                 deleteDocument(documentId)
                 _uiState.value = UiState.Error(
@@ -125,6 +142,8 @@ class DocumentImportViewModel(private val application: Application) : ViewModel(
         viewModelScope.launch {
             try {
                 generateAndSave(topic, isTopic = true, deckId = deckId)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: AiGenerationException) {
                 _uiState.value = UiState.Error(
                     e.message ?: application.getString(R.string.create_error_no_cards)

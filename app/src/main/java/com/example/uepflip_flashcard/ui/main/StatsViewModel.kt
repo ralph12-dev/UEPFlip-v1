@@ -8,6 +8,7 @@ import com.example.uepflip_flashcard.domain.DeckStats
 import com.example.uepflip_flashcard.ui.SimpleViewModelFactory
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
@@ -24,7 +25,8 @@ data class StatsUiState(
     val masteryPercent: Int = 0,
     val totalReviews: Int = 0,
     val reviewsLast7Days: Int = 0,
-    val recallRatePercent: Int? = null
+    val recallRatePercent: Int? = null,
+    val loadFailed: Boolean = false
 )
 
 class StatsViewModel(repository: FlashcardRepository) : ViewModel() {
@@ -46,6 +48,9 @@ class StatsViewModel(repository: FlashcardRepository) : ViewModel() {
             reviewsLast7Days = DeckStats.reviewsLastDays(reviews, 7),
             recallRatePercent = DeckStats.recallRatePercent(reviews)
         )
+    }.catch {
+        // A Room failure must not leave the figures as "—" forever with no explanation.
+        emit(StatsUiState(isLoading = false, loadFailed = true))
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),

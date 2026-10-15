@@ -70,15 +70,20 @@ class TutorViewModel(
         _uiState.value = TutorUiState(messages = listOf(Msg(Msg.BOT, opening)))
     }
 
-    fun send(rawText: String) {
+    /**
+     * Accepts a chat message. Returns true when it was taken; false when the input was blank or a
+     * reply is still in flight, so the caller knows to keep the user's text rather than discard it.
+     */
+    fun send(rawText: String): Boolean {
         val text = rawText.trim()
-        if (text.isEmpty() || _uiState.value.isGenerating) return
+        if (text.isEmpty() || _uiState.value.isGenerating) return false
 
         if (card != null) {
             grade(text)
         } else {
             generateCards(text)
         }
+        return true
     }
 
     /** Asks the AI for a deeper explanation of the student's last graded answer. */

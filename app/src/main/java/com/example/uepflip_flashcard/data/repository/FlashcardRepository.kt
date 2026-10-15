@@ -140,11 +140,6 @@ class FlashcardRepository(
         }
     }
 
-    /** Convenience overload for callers that already hold the card. */
-    suspend fun submitRating(card: CardEntity, rating: Int) {
-        processCardReview(card.id, rating)
-    }
-
     companion object {
         /** Builds a repository backed by the app-wide Room database. */
         fun create(context: Context): FlashcardRepository {

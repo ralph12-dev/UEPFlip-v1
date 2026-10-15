@@ -119,12 +119,15 @@ class StudyFragment : Fragment(R.layout.fragment_study) {
             if (!completionNotified) {
                 completionNotified = true
                 val message = state.errorMessage
-                    ?: if (state.reviewedCount == 0) getString(R.string.no_cards_due)
-                    else resources.getQuantityString(
-                        R.plurals.study_summary,
-                        state.reviewedCount,
-                        state.reviewedCount
-                    )
+                    ?: when {
+                        state.reviewedCount > 0 -> resources.getQuantityString(
+                            R.plurals.study_summary,
+                            state.reviewedCount,
+                            state.reviewedCount
+                        )
+                        state.deckIsEmpty -> getString(R.string.study_deck_empty)
+                        else -> getString(R.string.no_cards_due)
+                    }
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
                 goBack()
             }

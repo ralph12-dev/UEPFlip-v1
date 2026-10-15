@@ -27,9 +27,11 @@ object AiGeneratorProvider {
         }
 
         if (apiKey.isBlank()) {
+            // Keep the actionable detail in Logcat for whoever configures the project; users get a
+            // plain message instead of Firebase Remote Config instructions.
+            Log.w(TAG, "Gemini API key is missing from Remote Config (key: $API_KEY_CONFIG_KEY)")
             throw AiGenerationException(
-                "AI is not configured. Add the Gemini API key to Firebase Remote Config " +
-                    "(key: ${API_KEY_CONFIG_KEY})."
+                "AI features are not set up yet. Please try again later."
             )
         }
 

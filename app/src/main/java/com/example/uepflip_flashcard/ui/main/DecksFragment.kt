@@ -21,7 +21,7 @@ import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
-class DecksFragment : Fragment(R.layout.fragment_decks) {
+class DecksFragment : Fragment(R.layout.fragment_decks), NavDestination {
 
     private val viewModel: DashboardViewModel by lazy {
         ViewModelProvider(
@@ -37,6 +37,7 @@ class DecksFragment : Fragment(R.layout.fragment_decks) {
 
     private var allDecks: List<Deck> = emptyList()
     private var isLoading = true
+    private var loadFailed = false
 
     override fun onViewCreated(v: View, savedInstanceState: Bundle?) {
         val main = requireActivity() as MainActivity
@@ -68,6 +69,7 @@ class DecksFragment : Fragment(R.layout.fragment_decks) {
                 viewModel.state.collect { state ->
                     allDecks = state.decks
                     isLoading = state.isLoading
+                    loadFailed = state.loadFailed
                     applyFilter()
                 }
             }
@@ -87,10 +89,11 @@ class DecksFragment : Fragment(R.layout.fragment_decks) {
 
         // A brand-new account and a filter with no hits are different situations, so they get
         // different copy; nothing is shown while the first Room emission is still in flight.
-        emptyView.text = if (allDecks.isEmpty()) {
-            getString(R.string.decks_empty)
-        } else {
-            getString(R.string.decks_no_matches)
+        emptyView.text = when {
+            loadFailed -> getString(R.string.data_load_error)
+            allDecks.isEmpty() -> getString(R.string.decks_empty)
+            query.isNotBlank() -> getString(R.string.decks_no_matches)
+            else -> getString(R.string.decks_no_filter_matches)
         }
         emptyView.visibility = if (!isLoading && filtered.isEmpty()) View.VISIBLE else View.GONE
     }

@@ -16,7 +16,7 @@ import com.example.uepflip_flashcard.data.repository.FlashcardRepository
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
-class HomeFragment : Fragment(R.layout.fragment_home) {
+class HomeFragment : Fragment(R.layout.fragment_home), NavDestination {
 
     private val viewModel: DashboardViewModel by lazy {
         ViewModelProvider(
@@ -40,6 +40,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
         v.findViewById<View>(R.id.btn_view_all).setOnClickListener { main.goDecks() }
         v.findViewById<View>(R.id.btn_create).setOnClickListener { main.goCreate() }
+        v.findViewById<View>(R.id.card_progress).setOnClickListener { main.goStats() }
 
         val list = v.findViewById<RecyclerView>(R.id.recent_decks)
         list.layoutManager = LinearLayoutManager(requireContext())
@@ -64,6 +65,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         v.findViewById<TextView>(R.id.overdue_text).text = when {
             // Avoid flashing "No decks yet" while the first Room emission is still in flight.
             state.isLoading -> ""
+            state.loadFailed -> getString(R.string.data_load_error)
             state.decks.isEmpty() -> getString(R.string.home_no_decks)
             !hasDue -> getString(R.string.home_all_caught_up)
             else -> resources.getQuantityString(

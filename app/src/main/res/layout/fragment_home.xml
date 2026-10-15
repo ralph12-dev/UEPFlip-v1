@@ -11,7 +11,23 @@
                 <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="@string/home_subtitle"/>
             </LinearLayout>
-            <com.google.android.material.card.MaterialCardView style="@style/UF.Card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:layout_marginBottom="12dp">
+            <com.google.android.material.card.MaterialCardView android:id="@+id/card_progress" style="@style/UF.Card"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="18dp" android:layout_marginBottom="12dp"
+                android:clickable="true" android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="14dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:gravity="center_vertical">
+                        <TextView style="@style/UF.H2" android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:text="@string/stats_progress_title"/>
+                        <ImageView android:layout_width="16dp" android:layout_height="16dp"
+                            android:src="@drawable/ic_chev" android:contentDescription="@null"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView style="@style/UF.Card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="14dp" android:gravity="center_vertical">
                     <ImageView android:layout_width="70dp" android:layout_height="70dp" android:src="@drawable/ic_mascot" android:contentDescription="@null"/>
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
@@ -23,7 +39,7 @@
             </com.google.android.material.card.MaterialCardView>
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="10dp" android:gravity="center_vertical">
                 <TextView style="@style/UF.H2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/home_recent_decks"/>
-                <TextView android:id="@+id/btn_view_all" style="@style/UF.Muted" android:layout_width="48dp" android:layout_height="48dp" android:gravity="center_vertical|end" android:clickable="true" android:focusable="true" android:text="@string/home_view_all"/>
+                <TextView android:id="@+id/btn_view_all" style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="48dp" android:minWidth="48dp" android:paddingHorizontal="8dp" android:gravity="center_vertical|end" android:clickable="true" android:focusable="true" android:text="@string/home_view_all"/>
             </LinearLayout>
             <androidx.recyclerview.widget.RecyclerView android:id="@+id/recent_decks" android:layout_width="match_parent" android:layout_height="wrap_content" android:nestedScrollingEnabled="false"/>
         </LinearLayout>

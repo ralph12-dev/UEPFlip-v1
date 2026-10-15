@@ -2,10 +2,12 @@ package com.example.uepflip_flashcard.ui.main
 
 import android.content.Context
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -88,8 +90,27 @@ class OnboardingFragment : Fragment(R.layout.activity_onboarding) {
         override fun onBindViewHolder(holder: VH, position: Int) {
             val page = pages[position]
             val itemView = holder.itemView
+            val image = itemView.findViewById<ImageView>(R.id.image)
+            val density = itemView.resources.displayMetrics.density
 
-            itemView.findViewById<ImageView>(R.id.image).setImageResource(page.image)
+            itemView.findViewById<TextView>(R.id.logo).visibility =
+                if (position == 0) View.VISIBLE else View.GONE
+            image.setImageResource(page.image)
+            if (position == 0) {
+                val mascotSize = (210 * density).toInt()
+                image.layoutParams = FrameLayout.LayoutParams(mascotSize, mascotSize, Gravity.CENTER)
+                image.setBackgroundResource(R.drawable.bg_circle_soft)
+                val mascotPadding = (24 * density).toInt()
+                image.setPadding(mascotPadding, mascotPadding, mascotPadding, mascotPadding)
+            } else {
+                image.layoutParams = FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    Gravity.CENTER
+                )
+                image.background = null
+                image.setPadding(0, 0, 0, 0)
+            }
             itemView.findViewById<TextView>(R.id.title).setText(page.title)
             itemView.findViewById<TextView>(R.id.body).setText(page.body)
         }

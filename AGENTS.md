@@ -78,9 +78,16 @@ calls on the JVM don't throw.
   Home / Decks / Stats / Tutor tabs plus pushed detail screens `CreateFragment` and `StudyFragment`.
   All of it reads and writes Room; there is no hardcoded demo data in the UI layer (debug builds do
   seed real rows on first launch — see "Sample data").
-- `MainActivity.show(...)` is for top-level destinations (clears the back stack), `push(...)` for
+- `MainActivity.show(f, checkId)` is for top-level destinations (clears the back stack), `push(f)` for
   detail screens. `MainActivity.goStudy(deckId)` / `goCreate()` / `goHome()` / `goDecks()` are the
   entry points fragments should use.
+- The bottom bar's visibility is **derived, never set at the call site**: `HomeFragment`,
+  `DecksFragment` and `StatsFragment` implement the `NavDestination` marker and `MainActivity` reads it
+  in `FragmentManager.FragmentLifecycleCallbacks.onFragmentResumed`. Setting `nav.visibility` directly
+  is what used to lose the bar — a reversed fragment transaction (Back / `popBackStack`) cannot restore
+  a value the transaction never owned. `show()` also gates its back-stack pop on the same marker, so
+  the marker is the single definition of "top-level". The Tutor screen deliberately is *not* a
+  `NavDestination` (the design hides the bar there; the screen has its own back button).
 - The whole UI is the fragment shell; the earlier Activity-based screens are gone. Tapping a deck row
   (Home or Decks) goes straight to study — there is no separate card-list screen, so cards are only
   created by the AI import (Create/Tutor) and are not hand-editable. Deck create/rename/delete live in

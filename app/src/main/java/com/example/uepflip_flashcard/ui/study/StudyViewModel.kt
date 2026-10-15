@@ -12,6 +12,7 @@ import com.example.uepflip_flashcard.domain.scheduler.Sm2Scheduler
 import com.example.uepflip_flashcard.ui.SimpleViewModelFactory
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,7 +30,9 @@ data class StudyUiState(
     val isSubmitting: Boolean = false,
     val hint: String? = null,
     val isHintLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    /** True when the deck itself has no cards, as opposed to none being due right now. */
+    val deckIsEmpty: Boolean = false
 ) {
     val currentCard: CardEntity?
         get() = cards.getOrNull(currentIndex)
@@ -75,7 +78,10 @@ class StudyViewModel(
                 _uiState.value = StudyUiState(
                     isLoading = false,
                     cards = dueCards,
-                    isSessionCompleted = dueCards.isEmpty()
+                    isSessionCompleted = dueCards.isEmpty(),
+                    // A deck with no cards at all is a different message from "nothing due yet".
+                    deckIsEmpty = dueCards.isEmpty() &&
+                        repository.getCardCountForDeck(deckId) == 0
                 )
             } catch (e: Exception) {
                 _uiState.value = StudyUiState(
@@ -99,17 +105,29 @@ class StudyViewModel(
         _uiState.update { it.copy(isHintLoading = true) }
 
         viewModelScope.launch {
-            try {
-                val hint = ensureGenerator().generateHint(card.question, card.answer)
-                _uiState.update { it.copy(hint = hint, isHintLoading = false) }
+            val hint = try {
+                ensureGenerator().generateHint(card.question, card.answer)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                val reason = e.message ?: application.getString(R.string.study_hint_failed)
-                _uiState.update {
-                    it.copy(
+                _uiState.update { current ->
+                    // The session may have moved on while the request was in flight. A hint (or an
+                    // error) that belongs to a card no longer on screen is dropped.
+                    if (current.currentCard?.id != card.id) return@update current
+                    current.copy(
                         isHintLoading = false,
-                        errorMessage = application.getString(R.string.study_hint_error, reason)
+                        errorMessage = application.getString(
+                            R.string.study_hint_error,
+                            e.message ?: application.getString(R.string.study_hint_failed)
+                        )
                     )
                 }
+                return@launch
+            }
+            _uiState.update { current ->
+                // Never show a hint for one question against a different card.
+                if (current.currentCard?.id != card.id) return@update current
+                current.copy(hint = hint, isHintLoading = false)
             }
         }
     }
@@ -171,6 +189,7 @@ class StudyViewModel(
                     selectedRating = Sm2Scheduler.RATING_MEDIUM,
                     isSubmitting = false,
                     hint = null,
+                    isHintLoading = false,
                     reviewedCount = state.reviewedCount + 1,
                     isSessionCompleted = completed
                 )
