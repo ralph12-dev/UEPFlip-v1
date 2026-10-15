@@ -20,6 +20,9 @@ interface DeckDao {
     @Delete
     suspend fun deleteDeck(deck: DeckEntity)
 
+    @Query("DELETE FROM decks WHERE id = :deckId")
+    suspend fun deleteDeckById(deckId: Long)
+
     @Query("SELECT * FROM decks ORDER BY updatedAt DESC")
     fun getAllDecks(): Flow<List<DeckEntity>>
 

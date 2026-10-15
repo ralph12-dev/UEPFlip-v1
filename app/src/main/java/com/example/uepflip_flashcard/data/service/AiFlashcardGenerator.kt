@@ -1,0 +1,328 @@
+package com.example.uepflip_flashcard.data.service
+
+import android.util.Log
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
+import java.util.concurrent.TimeUnit
+
+/** A single flashcard produced by the AI. */
+data class GeneratedCard(
+    val question: String,
+    val answer: String
+)
+
+/**
+ * Raised when flashcards cannot be produced. The message is written for end users and is safe to
+ * surface directly in the UI.
+ */
+class AiGenerationException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+// --- Gemini wire models (only the fields we consume) -----------------------------------------
+
+internal data class GeminiPart(val text: String? = null)
+internal data class GeminiContent(val role: String? = null, val parts: List<GeminiPart> = emptyList())
+internal data class GeminiCandidate(val content: GeminiContent? = null, val finishReason: String? = null)
+internal data class GeminiPromptFeedback(val blockReason: String? = null)
+internal data class GeminiResponse(
+    val candidates: List<GeminiCandidate>? = null,
+    val promptFeedback: GeminiPromptFeedback? = null
+)
+
+internal data class GeminiRequest(val contents: List<GeminiContent>)
+
+/** Shape we ask the model to return inside its text part. */
+internal data class FlashcardResponse(val flashcards: List<GeneratedCard> = emptyList())
+
+/** Shape we ask the model to return when grading a student's recall. */
+internal data class EvaluationResponse(
+    val score: Int? = null,
+    val correct: Boolean? = null,
+    val note: String? = null,
+    val explanation: String? = null
+)
+
+/**
+ * A graded answer. [score] is the model's 0-100 judgement and is never invented by the UI:
+ * if the model returns nothing usable the call fails instead of showing a fake number.
+ */
+data class AnswerEvaluation(
+    val score: Int,
+    val correct: Boolean,
+    val note: String,
+    val explanation: String
+)
+
+/**
+ * Talks to the Gemini `generateContent` API to turn raw text into flashcards.
+ *
+ * The API key is supplied by the caller (read at runtime from Firebase Remote Config) and is never
+ * hardcoded or logged. All failures are surfaced as [AiGenerationException] with an actionable
+ * message so the UI can recover gracefully.
+ */
+class AiFlashcardGenerator(
+    private val apiKey: String,
+    private val endpoint: String = DEFAULT_ENDPOINT,
+    private val client: OkHttpClient = defaultClient()
+) {
+    companion object {
+        private const val TAG = "AiFlashcardGenerator"
+        private const val MAX_INPUT_CHARS = 30_000
+
+        /** Score at or above which an answer counts as correct. */
+        private const val PASS_MARK = 60
+
+        const val DEFAULT_ENDPOINT =
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+
+        private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+
+        private fun defaultClient(): OkHttpClient = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .build()
+    }
+
+    private val moshi = Moshi.Builder()
+        .add(KotlinJsonAdapterFactory())
+        .build()
+
+    /**
+     * Requests flashcards for [text]. Runs on an IO dispatcher and throws [AiGenerationException]
+     * on any failure. Cancellation propagates normally.
+     *
+     * @param isTopic true when [text] is a short topic/lesson the student wants to learn about
+     *   rather than a document to summarise; the model is prompted to expand it instead of treating
+     *   it as source material.
+     */
+    suspend fun generateFlashcards(
+        text: String,
+        isTopic: Boolean = false
+    ): List<GeneratedCard> {
+        if (text.isBlank()) {
+            throw AiGenerationException("There is no text to generate flashcards from.")
+        }
+        return parseFlashcards(requestModelText(buildFlashcardPrompt(text.take(MAX_INPUT_CHARS), isTopic)))
+    }
+
+    /**
+     * Asks for a single nudge about [question] without revealing [answer]. Used by the study
+     * screen's "Request hint"; the hint is whatever the model wrote, so nothing is fabricated
+     * locally.
+     */
+    suspend fun generateHint(question: String, answer: String): String {
+        if (question.isBlank()) {
+            throw AiGenerationException("There is nothing to give a hint for.")
+        }
+        val prompt = """
+            You are a study coach. A student is looking at this flashcard and wants a nudge, not the
+            answer.
+
+            Question: ${question.take(MAX_INPUT_CHARS)}
+            Answer (do NOT state or paraphrase this): ${answer.take(MAX_INPUT_CHARS)}
+
+            Write one or two short sentences that point the student toward the right idea without
+            giving the answer away. Reply with plain text only.
+        """.trimIndent()
+        return requestModelText(prompt).trim().ifBlank {
+            throw AiGenerationException("The AI returned an empty hint. Please try again.")
+        }
+    }
+
+    /**
+     * Grades [studentAnswer] against the card's [referenceAnswer]. The score comes straight from the
+     * model; an unparseable response is reported as a failure rather than papered over.
+     */
+    suspend fun evaluateAnswer(
+        question: String,
+        referenceAnswer: String,
+        studentAnswer: String
+    ): AnswerEvaluation {
+        if (studentAnswer.isBlank()) {
+            throw AiGenerationException("Write an answer before asking for feedback.")
+        }
+        val prompt = """
+            You are grading a student's recall of a flashcard.
+
+            Question: ${question.take(MAX_INPUT_CHARS)}
+            Reference answer: ${referenceAnswer.take(MAX_INPUT_CHARS)}
+            Student's answer: ${studentAnswer.take(MAX_INPUT_CHARS)}
+
+            Judge only whether the student captured the reference answer's key idea. Be fair to
+            paraphrases and minor wording differences.
+
+            Respond with ONLY a JSON object in exactly this shape, with no extra commentary:
+            {"score":0,"correct":false,"note":"one short sentence","explanation":"two or three sentences"}
+
+            "score" is 0-100 and must agree with "correct" (below $PASS_MARK is incorrect).
+        """.trimIndent()
+
+        val parsed = parseEvaluation(requestModelText(prompt))
+        val score = (parsed.score ?: 0).coerceIn(0, 100)
+        val note = parsed.note?.trim().orEmpty()
+        if (note.isBlank()) {
+            throw AiGenerationException("The AI response was not in the expected format.")
+        }
+        return AnswerEvaluation(
+            score = score,
+            correct = parsed.correct ?: (score >= PASS_MARK),
+            note = note,
+            explanation = parsed.explanation?.trim().orEmpty()
+        )
+    }
+
+    /** Deeper explanation shown behind the accuracy card's "View more explanation" button. */
+    suspend fun generateExplanation(
+        question: String,
+        referenceAnswer: String,
+        studentAnswer: String
+    ): String {
+        if (question.isBlank()) {
+            throw AiGenerationException("There is nothing to explain.")
+        }
+        val prompt = """
+            A student is reviewing this flashcard.
+
+            Question: ${question.take(MAX_INPUT_CHARS)}
+            Reference answer: ${referenceAnswer.take(MAX_INPUT_CHARS)}
+            The student answered: ${studentAnswer.take(MAX_INPUT_CHARS)}
+
+            In three to five sentences, explain why the reference answer is correct, call out the
+            part the student missed, and give one thing to remember next time. Reply with plain text
+            only.
+        """.trimIndent()
+        return requestModelText(prompt).trim().ifBlank {
+            throw AiGenerationException("The AI returned an empty explanation. Please try again.")
+        }
+    }
+
+    /** Performs the HTTPS call and returns the model's raw text part. */
+    private suspend fun requestModelText(prompt: String): String = withContext(Dispatchers.IO) {
+        if (apiKey.isBlank()) {
+            throw AiGenerationException("AI is not configured yet.")
+        }
+
+        val request = Request.Builder()
+            .url("$endpoint?key=$apiKey")
+            .post(buildRequestBody(prompt).toRequestBody(JSON_MEDIA_TYPE))
+            .build()
+
+        val responseBody = try {
+            client.newCall(request).execute().use { response ->
+                val payload = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    // Log the body for debugging but never echo the key or raw payload to the user.
+                    Log.e(TAG, "Gemini request failed with ${response.code}: $payload")
+                    throw AiGenerationException(
+                        "The AI service returned an error (${response.code}). Please try again."
+                    )
+                }
+                payload
+            }
+        } catch (e: IOException) {
+            Log.e(TAG, "Network error calling Gemini", e)
+            throw AiGenerationException("Network error. Check your connection and try again.", e)
+        }
+
+        extractCandidateText(responseBody)
+    }
+
+    private fun buildRequestBody(prompt: String): String {
+        val request = GeminiRequest(
+            contents = listOf(GeminiContent(parts = listOf(GeminiPart(prompt))))
+        )
+        // Serialising with Moshi guarantees the prompt is correctly JSON-escaped.
+        return moshi.adapter(GeminiRequest::class.java).toJson(request)
+    }
+
+    /** Unwraps the Gemini envelope and returns the model's text part. */
+    private fun extractCandidateText(responseBody: String): String {
+        val gemini = try {
+            moshi.adapter(GeminiResponse::class.java).fromJson(responseBody)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse Gemini envelope", e)
+            throw AiGenerationException("The AI returned an unreadable response.", e)
+        }
+
+        gemini?.promptFeedback?.blockReason?.let { reason ->
+            throw AiGenerationException("The request was blocked by the AI service ($reason).")
+        }
+
+        val text = gemini?.candidates
+            .orEmpty()
+            .flatMap { it.content?.parts.orEmpty() }
+            .mapNotNull { it.text }
+            .joinToString("\n")
+            .trim()
+
+        if (text.isBlank()) {
+            throw AiGenerationException("The AI returned an empty response. Please try again.")
+        }
+        return text
+    }
+
+    private fun parseFlashcards(modelText: String): List<GeneratedCard> {
+        val parsed = try {
+            moshi.adapter(FlashcardResponse::class.java).fromJson(extractJsonObject(modelText))
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse flashcard JSON: $modelText", e)
+            throw AiGenerationException("The AI response was not in the expected flashcard format.", e)
+        }
+
+        return parsed?.flashcards.orEmpty()
+            .filter { it.question.isNotBlank() && it.answer.isNotBlank() }
+    }
+
+    private fun parseEvaluation(modelText: String): EvaluationResponse {
+        val parsed = try {
+            moshi.adapter(EvaluationResponse::class.java).fromJson(extractJsonObject(modelText))
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse evaluation JSON: $modelText", e)
+            throw AiGenerationException("The AI response was not in the expected format.", e)
+        }
+        return parsed
+            ?: throw AiGenerationException("The AI returned an empty evaluation. Please try again.")
+    }
+
+    /** Strips markdown code fences and any prose around the JSON object the model returned. */
+    private fun extractJsonObject(raw: String): String {
+        val cleaned = raw.replace("```json", "").replace("```", "").trim()
+        val start = cleaned.indexOf('{')
+        val end = cleaned.lastIndexOf('}')
+        return if (start >= 0 && end > start) cleaned.substring(start, end + 1) else cleaned
+    }
+
+    private fun buildFlashcardPrompt(text: String, isTopic: Boolean): String {
+        val introduction = if (isTopic) {
+            """
+            You are a flashcard generator for students. Build a study set for the topic or lesson
+            below, covering its key concepts with concise question/answer flashcards.
+            """.trimIndent()
+        } else {
+            """
+            You are a flashcard generator for students. Read the material below and create concise
+            question/answer flashcards that test understanding of the key concepts.
+            """.trimIndent()
+        }
+        val label = if (isTopic) "Topic or lesson" else "Material"
+
+        return """
+            $introduction
+
+            $label:
+            $text
+
+            Respond with ONLY a JSON object in exactly this shape, with no extra commentary:
+            {"flashcards":[{"question":"...","answer":"..."}]}
+
+            Create between 5 and 10 flashcards. Each question must be self-contained.
+        """.trimIndent()
+    }
+}

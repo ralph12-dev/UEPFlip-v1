@@ -1,58 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:padding="16dp">
-
-    <TextView
-        android:id="@+id/tvDeckTitle"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:textColor="?android:attr/textColorPrimary"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/cardCountBadge"
-        android:layout_marginEnd="8dp"
-        tools:text="Spanish Vocabulary" />
-
-    <com.google.android.material.chip.Chip
-        android:id="@+id/cardCountBadge"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:backgroundTint="#E3F2FD"
-        android:textColor="#1565C0"
-        android:textSize="12sp"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="4dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:chipCornerRadius="12dp"
-        tools:text="12 cards" />
-
-    <TextView
-        android:id="@+id/tvDeckDescription"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textColor="?android:attr/textColorSecondary"
-        android:textSize="14sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvDeckTitle"
-        tools:text="Learn common Spanish words and phrases" />
-
-    <View
-        android:id="@+id/divider"
-        android:layout_width="0dp"
-        android:layout_height="1dp"
-        android:layout_marginTop="12dp"
-        android:background="#E0E0E0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvDeckDescription" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+    style="@style/UF.Card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="14dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+            <TextView android:id="@+id/monogram" android:layout_width="42dp" android:layout_height="42dp" android:background="@drawable/bg_tile" android:gravity="center" android:textStyle="bold" android:textColor="@color/accent" tools:text="DS"/>
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginHorizontal="12dp" android:orientation="vertical">
+                <TextView android:id="@+id/deck_name" style="@style/UF.Body" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textStyle="bold" tools:text="Data Structures"/>
+                <TextView android:id="@+id/deck_count" style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" tools:text="24 cards"/>
+                <TextView android:id="@+id/deck_review" style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone" android:textSize="12sp"/>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:gravity="center_vertical">
+                    <com.google.android.material.progressindicator.LinearProgressIndicator android:id="@+id/deck_progress" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:progress="70" app:trackColor="@color/line" app:indicatorColor="@color/accent" app:trackCornerRadius="3dp" app:trackThickness="5dp" tools:progress="70"/>
+                    <TextView android:id="@+id/deck_pct" style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="12sp" tools:text="70%"/>
+                </LinearLayout>
+            </LinearLayout>
+            <ImageView android:id="@+id/chevron" android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_chev" android:contentDescription="@null"/>
+        </LinearLayout>
+        <!-- Show only in the My Decks list -->
+        <Button android:id="@+id/btn_study" style="@style/UF.Button.Small" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="end" android:layout_marginTop="10dp" android:text="@string/deck_study_now" android:visibility="gone"/>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

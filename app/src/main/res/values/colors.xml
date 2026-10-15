@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="bg">#F8F1E1</color>
+    <color name="card">#FFFAF0</color>
+    <color name="ink">#2A2520</color>
+    <color name="mute">#6B5F4E</color>
+    <color name="line">#E4D8BE</color>
+    <color name="track">#E9DEC5</color>
+    <color name="surface_alt">#EFE6D0</color>
+    <color name="on_dark_mute">#CDBF9F</color>
+    <color name="divider_on_dark">#2EF8F1E1</color>
+    <color name="accent">#2A2520</color>
+    <color name="accent_soft">#122A2520</color>
+    <color name="white">#FFFFFF</color>
     <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
 </resources>

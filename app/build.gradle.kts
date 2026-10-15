@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.ksp)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -33,6 +34,16 @@ android {
     buildFeatures {
         viewBinding = true
     }
+    packaging {
+        // Handle duplicate META-INF files from PDFBox libraries
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1,DEPENDENCIES}"
+        }
+    }
+    testOptions {
+        // AI service tests exercise android.util.Log paths on the JVM.
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -41,16 +52,32 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.constraintlayout)
-    
+
     // Lifecycle & Room & Coroutines
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.ksp)
     implementation(libs.kotlinx.coroutines.android)
 
+    // PDFBox for text extraction
+    implementation(libs.pdfbox)
+    implementation(libs.fontbox)
+
+    // OkHttp & Moshi for AI API communication
+    implementation(libs.okhttp)
+    implementation(libs.moshi)
+    implementation(libs.moshi.kotlin)
+
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Import the Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:33.2.0"))
+    // Firebase Remote Config
+    implementation("com.google.firebase:firebase-config-ktx")
+    // Firebase Analytics (needed for Remote Config)
+    implementation("com.google.firebase:firebase-analytics-ktx")
 }

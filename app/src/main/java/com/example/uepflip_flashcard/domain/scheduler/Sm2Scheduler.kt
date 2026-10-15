@@ -53,7 +53,7 @@ class Sm2Scheduler : SpacedRepetitionScheduler {
                 1 -> 1
                 2 -> 6
                 else -> {
-                    val computed = (currentInterval * currentEaseFactor).roundToInt()
+                    val computed = (currentInterval * newEaseFactor).roundToInt()
                     max(1, computed)
                 }
             }

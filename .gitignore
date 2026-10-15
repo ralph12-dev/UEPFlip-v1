@@ -13,3 +13,14 @@
 .externalNativeBuild
 .cxx
 local.properties
+.kotlin
+
+# Scratch build logs and stale backups kept in the repo root (see AGENTS.md).
+/build*.txt
+/build*.log
+/full_build*
+/latest_build.txt
+/fresh_build.txt
+/repo_backup.kt
+gradle/libs.versions.toml.bak
+gradle/libs.versions.toml.old

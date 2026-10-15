@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="20dp" android:background="@color/bg">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+        <ImageButton android:id="@+id/btn_back" android:layout_width="48dp" android:layout_height="48dp" android:background="@null" android:padding="12dp" android:src="@drawable/ic_back" android:contentDescription="@string/back"/>
+        <TextView style="@style/UF.H2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:text="@string/tutor_title"/>
+    </LinearLayout>
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/messages" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:paddingVertical="12dp" android:clipToPadding="false"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+        <EditText android:id="@+id/message_input" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:background="@drawable/bg_input" android:hint="@string/tutor_placeholder" android:paddingHorizontal="13dp" android:inputType="textCapSentences" android:imeOptions="actionSend" android:textColor="@color/ink" android:textColorHint="@color/mute" android:textSize="14sp" android:importantForAutofill="no"/>
+        <ImageButton android:id="@+id/btn_send" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginStart="8dp" android:background="@drawable/bg_bubble_user" android:src="@drawable/ic_send" android:contentDescription="@string/tutor_send" app:tint="@color/white"/>
+    </LinearLayout>
+</LinearLayout>

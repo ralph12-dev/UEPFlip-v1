@@ -1,9 +1,42 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.UEPflip_flashcard" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+      Base application theme. UEPFlip is deliberately light-only: the warm paper palette is part of
+      the product's identity, so the Light parent is used rather than DayNight and there is no
+      values-night override.
+    -->
+    <style name="Base.Theme.UEPflip_flashcard" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSurface">@color/card</item>
+        <item name="colorOnSurface">@color/ink</item>
+        <item name="colorOnSurfaceVariant">@color/mute</item>
+        <item name="colorOutline">@color/line</item>
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 
     <style name="Theme.UEPflip_flashcard" parent="Base.Theme.UEPflip_flashcard" />
+
+    <!-- Fragment/UI styles (UF.* = UEPFlip) -->
+    <style name="UF.Logo" parent=""><item name="android:textSize">18sp</item><item name="android:textStyle">bold</item><item name="android:letterSpacing">0.05</item><item name="android:textColor">@color/ink</item></style>
+    <style name="UF.Title" parent=""><item name="android:textSize">24sp</item><item name="android:textStyle">bold</item><item name="android:textColor">@color/ink</item></style>
+    <style name="UF.H2" parent=""><item name="android:textSize">16sp</item><item name="android:textStyle">bold</item><item name="android:textColor">@color/ink</item></style>
+    <style name="UF.Body" parent=""><item name="android:textSize">14sp</item><item name="android:textColor">@color/ink</item></style>
+    <style name="UF.Muted" parent=""><item name="android:textSize">13sp</item><item name="android:textColor">@color/mute</item></style>
+    <style name="UF.Button" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/accent</item><item name="cornerRadius">12dp</item>
+        <item name="android:textColor">@color/white</item><item name="android:textAllCaps">false</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:stateListAnimator">@null</item><item name="android:elevation">0dp</item><item name="android:insetTop">0dp</item><item name="android:insetBottom">0dp</item>
+    </style>
+    <style name="UF.Button.Soft"><item name="backgroundTint">@color/accent_soft</item><item name="android:textColor">@color/accent</item></style>
+    <style name="UF.Button.Small"><item name="android:minHeight">36dp</item><item name="android:textSize">12.5sp</item></style>
+    <style name="UF.Card" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/card</item><item name="cardCornerRadius">14dp</item><item name="cardElevation">0dp</item>
+        <item name="strokeColor">@color/line</item><item name="strokeWidth">1dp</item>
+    </style>
+
 </resources>

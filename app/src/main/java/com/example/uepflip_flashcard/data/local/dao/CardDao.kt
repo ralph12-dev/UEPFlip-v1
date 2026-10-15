@@ -35,6 +35,15 @@ interface CardDao {
     @Query("SELECT COUNT(*) FROM cards WHERE deckId = :deckId")
     suspend fun getCardCountForDeck(deckId: Long): Int
 
+    @Query("SELECT COUNT(*) FROM cards")
+    suspend fun getTotalCardCount(): Int
+
+    @Query("SELECT * FROM cards")
+    fun getAllCards(): Flow<List<CardEntity>>
+
+    @Query("SELECT COUNT(*) FROM cards WHERE nextReviewAt <= :currentTime OR nextReviewAt = 0")
+    suspend fun getDueCardCount(currentTime: Long): Int
+
     @Query("SELECT * FROM cards WHERE id = :cardId LIMIT 1")
     suspend fun getCardById(cardId: Long): CardEntity?
 }

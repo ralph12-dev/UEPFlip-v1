@@ -1,17 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">UEPflip_flashcard</string>
-    <string name="reveal_answer">Reveal Answer</string>
-    <string name="hard">Hard</string>
-    <string name="medium">Medium</string>
-    <string name="easy">Easy</string>
-    <string name="study_complete">Session Complete!\nYou have reviewed all cards.</string>
-    <string name="no_decks_yet">No decks yet</string>
-    <string name="tap_fab_to_create_deck">Tap the + button to create your first deck</string>
+    <string name="app_name">UEPFlip</string>
+    <string name="back">Back</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_decks">My Decks</string>
+    <string name="nav_stats">Statistics</string>
+    <string name="nav_tutor">AI Tutor</string>
+
+    <!-- Home -->
+    <string name="app_brand">UEPFLIP</string>
+    <string name="home_greeting_morning">Good morning</string>
+    <string name="home_greeting_afternoon">Good afternoon</string>
+    <string name="home_greeting_evening">Good evening</string>
+    <string name="home_subtitle">Ready to learn today?</string>
+    <string name="home_overdue_title">Overdue reviews</string>
+    <string name="home_review_now">Review now</string>
+    <string name="home_recent_decks">Recent decks</string>
+    <string name="home_view_all">View all</string>
+    <string name="home_create_deck">Create with AI</string>
+    <string name="home_no_decks">No decks yet. Tap \u201CCreate with AI\u201D to get started.</string>
+    <string name="home_all_caught_up">You are all caught up. No reviews are due right now.</string>
+    <plurals name="home_overdue">
+        <item quantity="one">Your brain misses you. %d deck is waiting for review.</item>
+        <item quantity="other">Your brain misses you. %d decks are waiting for review.</item>
+    </plurals>
+
+    <!-- Decks -->
+    <string name="decks_title">My Decks</string>
+    <string name="decks_new">New deck</string>
+    <string name="decks_search_hint">Search decks</string>
+    <string name="decks_filter_all">All</string>
+    <string name="decks_filter_progress">In Progress</string>
+    <string name="decks_filter_done">Completed</string>
+    <string name="decks_empty">No decks yet. Tap \u201CNew deck\u201D to create one.</string>
+    <string name="decks_no_matches">No decks match your search.</string>
+    <plurals name="deck_cards_count">
+        <item quantity="one">%d card</item>
+        <item quantity="other">%d cards</item>
+    </plurals>
+    <string name="next_review_label">Next review: %1$s</string>
+    <string name="deck_study_now">Study now</string>
     <string name="create_new_deck">Create new deck</string>
-    <string name="deck_cards_count">%d cards</string>
-    <string name="title_activity_deck_list">My Decks</string>
+    <string name="rename_deck">Rename deck</string>
+    <string name="delete_deck">Delete deck</string>
+    <string name="confirm_delete_deck">Delete \"%1$s\" and all of its cards? This cannot be undone.</string>
     <string name="deck_title_hint">Deck title</string>
-    <string name="deck_description_hint">Description (optional)</string>
-    <string name="btn_create_deck">Create Deck</string>
-    <string name="btn_save">Save</string>
+    <string name="deck_title_required">Title cannot be empty</string>
+
+    <!-- Create flashcards (AI) -->
+    <string name="create_title">Create flashcards</string>
+    <string name="create_source_topic">Topic</string>
+    <string name="create_source_pdf">PDF</string>
+    <string name="create_topic_label">Topic or lesson</string>
+    <string name="create_topic_hint">e.g. Photosynthesis \u2014 light reactions, Calvin cycle. Or paste your lesson notes.</string>
+    <string name="create_upload_title">Upload PDF file</string>
+    <string name="create_upload_hint">Tap to browse your device</string>
+    <string name="create_pdf_badge">PDF</string>
+    <string name="create_remove_file">Remove file</string>
+    <string name="create_deck_name_label">Deck name</string>
+    <string name="create_deck_name_hint">Deck name</string>
+    <string name="create_default_deck_name">New deck</string>
+    <string name="create_helper_topic">The AI will build 5\u201310 flashcards covering the key concepts of this topic or lesson.</string>
+    <string name="create_helper_pdf">The AI will read your PDF and build flashcards from its content. Scanned images are not supported.</string>
+    <string name="generate_flashcards">Generate flashcards</string>
+    <string name="create_loading_extracting">Extracting text from the PDF\u2026</string>
+    <string name="create_loading_generating">Generating flashcards with AI\u2026</string>
+    <string name="create_loading_saving">Saving flashcards\u2026</string>
+    <string name="create_error_no_deck">Choose a deck before generating flashcards.</string>
+    <string name="create_error_no_input">Enter a topic or paste your notes first.</string>
+    <string name="create_error_empty_pdf">No text could be extracted from this PDF. Scanned images are not supported.</string>
+    <string name="create_error_no_cards">The AI did not produce any flashcards. Try different material.</string>
+    <string name="create_error_generic">Something went wrong while generating flashcards: %1$s</string>
+    <string name="create_failed">Could not start generating flashcards: %1$s</string>
+    <plurals name="create_success">
+        <item quantity="one">Created %d flashcard.</item>
+        <item quantity="other">Created %d flashcards.</item>
+    </plurals>
+    <string name="pdf_generic_name">document.pdf</string>
+    <string name="file_removed">File removed</string>
+    <string name="select_pdf_first">Please select a PDF file first</string>
+
+    <!-- Study -->
+    <string name="study_label_question">QUESTION</string>
+    <string name="study_label_answer">ANSWER</string>
+    <string name="study_tap_reveal">Tap to reveal answer</string>
+    <string name="study_tap_question">Tap to see question</string>
+    <string name="study_rate_label">Rate your difficulty</string>
+    <string name="next_card">Next card</string>
+    <string name="hard">Hard</string>
+    <string name="normal">Normal</string>
+    <string name="easy">Easy</string>
+    <string name="study_counter">%1$d / %2$d</string>
+    <string name="no_cards_due">No cards are due right now. Great work!</string>
+    <string name="study_request_hint">Request hint</string>
+    <string name="study_ask_ai">Ask AI evaluator</string>
+    <string name="study_hint_error">Could not get a hint: %1$s</string>
+    <string name="study_hint_failed">the AI could not be reached</string>
+    <plurals name="study_summary">
+        <item quantity="one">You reviewed %d card.</item>
+        <item quantity="other">You reviewed %d cards.</item>
+    </plurals>
+
+    <!-- Statistics -->
+    <string name="stats_title">Statistics</string>
+    <string name="stats_progress_title">Your study progress</string>
+    <string name="stats_label_decks">Decks</string>
+    <string name="stats_label_cards">Cards</string>
+    <string name="stats_label_due">Due now</string>
+    <string name="stats_label_mastered">Mastered</string>
+    <string name="stats_history_title">Review history</string>
+    <string name="stats_label_total_reviews">Total reviews</string>
+    <string name="stats_label_last_7_days">Last 7 days</string>
+    <string name="stats_label_recall">Recall</string>
+    <string name="stats_empty">No study history yet. Reviews will appear here after you study a deck.</string>
+    <string name="stats_sr_title">Spaced repetition</string>
+    <string name="stats_sr_body">A card is considered mastered once its review interval reaches 21 days. Your progress reflects real review history.</string>
+    <string name="stat_percent">%1$d%%</string>
+    <string name="stat_no_data">\u2014</string>
+
+    <!-- AI Tutor -->
+    <string name="tutor_title">AI Tutor</string>
+    <string name="tutor_avatar_content_description">Tutor</string>
+    <string name="tutor_placeholder">Type a topic or paste your notes\u2026</string>
+    <string name="tutor_send">Send</string>
+    <string name="tutor_deck_title">AI Tutor</string>
+    <string name="tutor_welcome">Hi! Ask me about any topic and I\u2019ll turn it into flashcards you can study.</string>
+    <string name="tutor_no_material">I couldn\u2019t build flashcards from that. Try pasting more detailed notes or a longer explanation.</string>
+    <string name="tutor_error_generic">Something went wrong generating flashcards. Please try again.</string>
+    <plurals name="tutor_created">
+        <item quantity="one">Created %d flashcard. Find it in your \u201CAI Tutor\u201D deck.</item>
+        <item quantity="other">Created %d flashcards. Find them in your \u201CAI Tutor\u201D deck.</item>
+    </plurals>
+    <string name="tutor_eval_intro">Let\u2019s check how well you remember this card. Reply with your answer and I\u2019ll grade it:\n\n%1$s</string>
+    <string name="tutor_grade_failed">I couldn\u2019t check that answer: %1$s</string>
+    <string name="tutor_explanation_failed">I couldn\u2019t load more explanation: %1$s</string>
+    <string name="tutor_error_unknown">something went wrong</string>
+    <string name="chat_accuracy_title">Accuracy</string>
+    <string name="chat_view_more">View more explanation</string>
+    <string name="chat_continue">Continue studying</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_start">Get Started</string>
+    <string name="onboarding_welcome_toast">Welcome!</string>
+    <string name="onboarding_page_1_title">Make learning click</string>
+    <string name="onboarding_page_1_body">Your notes, your flashcards, your smarter way to study. Turn lessons into bite-sized learning and make every study session count.</string>
+    <string name="onboarding_page_2_title">Study smarter</string>
+    <string name="onboarding_page_2_body">Spaced repetition schedules each card for exactly when you are about to forget it, so you spend less time reviewing and remember more.</string>
+    <string name="onboarding_page_3_title">Create flashcards instantly</string>
+    <string name="onboarding_page_3_body">Type a topic or upload a PDF reviewer and let AI turn your learning material into study cards.</string>
+    <string name="onboarding_page_4_title">Track your progress</string>
+    <string name="onboarding_page_4_body">Test your knowledge, discover what needs more practice, and celebrate every improvement.</string>
+
+    <!-- Shared actions -->
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
 </resources>

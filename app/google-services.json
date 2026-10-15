@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "158917882025",
+    "project_id": "uepflip-flashcard",
+    "storage_bucket": "uepflip-flashcard.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:158917882025:android:9aa3eb2a8b57fa1e7379b8",
+        "android_client_info": {
+          "package_name": "com.example.uepflip_flashcard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaP-RkTBJ1z58BjbOIksZwVoz9pJuSzL8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

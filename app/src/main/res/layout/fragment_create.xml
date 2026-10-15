@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/bg">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+
+        <!-- Header -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+            <ImageButton android:id="@+id/btn_back" android:layout_width="48dp" android:layout_height="48dp"
+                android:background="@null" android:padding="12dp" android:src="@drawable/ic_back"
+                android:contentDescription="@string/back"/>
+            <TextView style="@style/UF.H2" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="4dp" android:text="@string/create_title"/>
+        </LinearLayout>
+
+        <!-- Source picker -->
+        <LinearLayout android:id="@+id/source_toggle" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="18dp" android:background="@drawable/bg_segment_container" android:orientation="horizontal"
+            android:padding="4dp">
+            <TextView android:id="@+id/tab_topic" android:layout_width="0dp" android:layout_height="44dp"
+                android:layout_weight="1" android:background="@drawable/bg_segment_selected" android:clickable="true"
+                android:focusable="true" android:gravity="center" android:text="@string/create_source_topic"
+                android:textColor="@color/ink" android:textSize="15sp" android:textStyle="bold"/>
+            <TextView android:id="@+id/tab_pdf" android:layout_width="0dp" android:layout_height="44dp"
+                android:layout_weight="1" android:layout_marginStart="4dp" android:clickable="true" android:focusable="true"
+                android:gravity="center" android:text="@string/create_source_pdf" android:textColor="@color/mute"
+                android:textSize="15sp" android:textStyle="bold"/>
+        </LinearLayout>
+
+        <!-- Topic / lesson input -->
+        <LinearLayout android:id="@+id/panel_topic" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <TextView style="@style/UF.Body" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="16dp" android:text="@string/create_topic_label" android:textStyle="bold"/>
+            <EditText android:id="@+id/input_topic" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" android:background="@drawable/bg_input" android:gravity="top|start"
+                android:hint="@string/create_topic_hint" android:importantForAutofill="no"
+                android:inputType="textMultiLine|textCapSentences" android:minLines="5" android:padding="13dp"
+                android:textColor="@color/ink" android:textColorHint="@color/mute" android:textSize="14sp"/>
+        </LinearLayout>
+
+        <!-- PDF input -->
+        <LinearLayout android:id="@+id/panel_pdf" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:visibility="gone">
+            <LinearLayout android:id="@+id/upload_zone" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="16dp" android:background="@drawable/bg_upload" android:clickable="true"
+                android:focusable="true" android:gravity="center" android:orientation="vertical" android:padding="28dp">
+                <ImageView android:layout_width="34dp" android:layout_height="34dp" android:src="@drawable/ic_file"
+                    android:contentDescription="@null"/>
+                <TextView style="@style/UF.H2" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/create_upload_title"/>
+                <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/create_upload_hint"/>
+            </LinearLayout>
+            <com.google.android.material.card.MaterialCardView android:id="@+id/file_card" style="@style/UF.Card"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp"
+                android:visibility="gone">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:gravity="center_vertical" android:padding="14dp">
+                    <TextView android:layout_width="42dp" android:layout_height="42dp" android:background="@drawable/bg_tile"
+                        android:gravity="center" android:text="@string/create_pdf_badge" android:textColor="@color/ink"
+                        android:textSize="11sp" android:textStyle="bold"/>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="10dp" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:id="@+id/file_name" style="@style/UF.Body" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textStyle="bold"/>
+                        <TextView android:id="@+id/file_size" style="@style/UF.Muted" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textSize="12sp"/>
+                    </LinearLayout>
+                    <ImageButton android:id="@+id/btn_remove" android:layout_width="48dp" android:layout_height="48dp"
+                        android:background="@null" android:padding="10dp" android:src="@drawable/ic_close"
+                        android:contentDescription="@string/create_remove_file"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
+        <!-- Deck name -->
+        <TextView style="@style/UF.Body" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="18dp" android:text="@string/create_deck_name_label" android:textStyle="bold"/>
+        <EditText android:id="@+id/input_deck_name" android:layout_width="match_parent" android:layout_height="48dp"
+            android:layout_marginTop="8dp" android:background="@drawable/bg_input" android:hint="@string/create_deck_name_hint"
+            android:imeOptions="actionDone" android:importantForAutofill="no" android:inputType="textCapSentences"
+            android:maxLines="1" android:paddingHorizontal="13dp" android:textColor="@color/ink"
+            android:textColorHint="@color/mute" android:textSize="14sp"/>
+
+        <TextView android:id="@+id/create_helper" style="@style/UF.Muted" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginVertical="16dp" android:lineSpacingExtra="3dp"
+            android:text="@string/create_helper_topic"/>
+
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_generate" style="@style/UF.Button"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/generate_flashcards"/>
+    </LinearLayout>
+</ScrollView>

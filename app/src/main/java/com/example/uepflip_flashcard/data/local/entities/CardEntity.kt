@@ -28,5 +28,8 @@ data class CardEntity(
     val interval: Int = 0,
     val easeFactor: Float = 2.5f,
     val lastReviewedAt: Long = 0L,
-    val nextReviewAt: Long = 0L
+    val nextReviewAt: Long = 0L,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+    val rating: Int = 0
 )
