@@ -21,10 +21,11 @@ claim against the repository before acting on it.
 ## 2. Current Status
 
 - **Overall status:** `IN_PROGRESS`
-- **Last updated:** 2026-10-19 01:43 (+08:00) — immediately after `T-005` (both commits landed).
+- **Last updated:** 2026-10-19 01:45 (+08:00) — immediately after `T-005` landed.
 - **Current phase:** the workforce is complete **and committed**. `T-001`, `T-002`, `T-003a` and
-  `T-005` are `DONE`. Nothing is in flight. `main` is at `e106f30`, the tree is clean, and no push
-  has been made.
+  `T-005` are `DONE`. Nothing is in flight. `main` is local-only, ahead of the pre-workforce
+  baseline `4bc2c48` by the two substantive commits plus `docs:` record updates — check
+  `git log --oneline`, this document does not pin its own head. **No push has been made.**
 - **Last verified build:** `.\gradlew.bat assembleDebug` → `BUILD SUCCESSFUL in 9s` (2026-10-19)
 - **Last verified tests:** `.\gradlew.bat testDebugUnitTest` → PASS at 00:45 on 2026-10-19
   (30/30 up-to-date, exit 0, JVM suite). `.\gradlew.bat connectedDebugAndroidTest` → PASS at 00:57
