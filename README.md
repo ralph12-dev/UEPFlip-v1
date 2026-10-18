@@ -125,6 +125,31 @@ cd UEPflip
 
    **Without a key:** AI features (Create with AI, Tutor, Hint) will show "AI features are not set up yet."
 
+3. **Gemini model (optional)**  
+   The model id defaults to `gemini-flash-latest` (`AiFlashcardGenerator.DEFAULT_MODEL`). To pin a
+   different one without shipping a build, add a Remote Config parameter `gemini_model` set to an id
+   printed by the `curl` below, and publish. A leading `models/` is stripped, so the id can be pasted
+   straight from that response. A new value is picked up the next time an AI screen is opened — not
+   mid-request, but possibly mid-session (leave and re-enter Create or Study).
+
+   **`error 404`:** the configured model id is no longer served. Google retires model ids on a
+   schedule — `gemini-2.0-flash` was shut down on 2026-06-01 and now returns `404`, which breaks
+   every AI feature at once (Create, Tutor, Hint all share `AiGeneratorProvider`). List what the key
+   can actually serve, then set `gemini_model` to one of those ids and publish:
+
+   ```bash
+   curl "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY"
+   ```
+
+   A blank or malformed `gemini_model` falls back to the default rather than failing, so a bad value
+   shows up in Logcat under tag `AiGeneratorProvider` — it does not crash the app.
+
+   Use a **text** `generateContent` model (e.g. `gemini-*-flash`, `gemini-*-flash-lite`). Image, TTS
+   and Live variants are rejected because the app sends only text parts and reads a text part back.
+   The short calls (Hint, Tutor grading, explanation) request `thinkingLevel: "low"`; that field is
+   only sent to `gemini-3*`, `gemini-4*` and `*-latest` ids, because Gemini 2.x rejects it (it uses
+   `thinkingBudget` instead).
+
 ### Debug Sample Data
 Debug builds auto-seed realistic sample data on first launch:
 - 4 decks (untouched, partly mature, mostly mature, fully overdue)

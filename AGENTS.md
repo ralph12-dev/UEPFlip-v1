@@ -22,9 +22,12 @@ There is no CI, lint, or formatter config in the repo. The Android `lint` task e
 into anything.
 
 JVM tests that should stay green (no device needed): `Sm2SchedulerTest` (SM-2 maths),
-`ReviewApplicationTest` (which fields a review persists), `DeckStatsTest` (mastery/due/labels) and
+`ReviewApplicationTest` (which fields a review persists), `DeckStatsTest` (mastery/due/labels),
 `AiFlashcardGeneratorTest` (Gemini request/response handling via a stubbed OkHttp client, including
-hint + answer-evaluation parsing).
+hint + answer-evaluation parsing), and `AiModelResolutionTest` (Gemini model-id resolution: `models/`
+prefix stripping, rejection of junk, and the exact endpoint URL). `AiModelResolutionTest` is
+**currently unverified** — it was added while builds were frozen and has never been compiled, so it
+must be run before its green is claimed.
 `app/build.gradle.kts` sets `testOptions.unitTests.isReturnDefaultValues = true` so `android.util.Log`
 calls on the JVM don't throw.
 
@@ -45,10 +48,12 @@ calls on the JVM don't throw.
   `domain/scheduler` (SM-2: `Sm2Scheduler`, `SpacedRepetitionScheduler`, `ScheduleResult`,
   `ReviewApplication`). `domain/DeckStats` holds the pure "mastery / due / label" helpers the UI uses.
 - `CardEntity` carries scheduling state (`repetitions`, `interval`, `easeFactor`, `nextReviewAt`,
-  `lastReviewedAt`, `rating`); `ReviewEntity` logs one row per review. `AppDatabase` is **version 2**
-  with `exportSchema = false` and a hand-written `MIGRATION_1_2` (documents table + three `cards`
-  columns). If you change an entity, bump the version and add a migration — Round trips are validated
-  at open, so a schema change without a version bump crashes the app on first DB access.
+  `lastReviewedAt`, `rating`) plus a nullable `hint` (pre-generated study nudge; `null` means "not
+  generated yet", never `""`); `ReviewEntity` logs one row per review. `AppDatabase` is **version 3**
+  with `exportSchema = false` and hand-written migrations: `MIGRATION_1_2` (documents table + three
+  `cards` columns) and `MIGRATION_2_3` (`cards.hint`). If you change an entity, bump the version and
+  add a migration — Round trips are validated at open, so a schema change without a version bump
+  crashes the app on first DB access.
 - Ratings are `1=Hard, 2=Medium, 3=Easy` (`Sm2Scheduler.RATING_*`), mapped internally to SM-2
   quality 2/4/5. Intervals: 1 day, 6 days, then `interval * newEaseFactor`.
 - `FlashcardRepository` owns `AppDatabase` so multi-table work (recording a review = insert
@@ -63,11 +68,27 @@ calls on the JVM don't throw.
   `data/service/AiGeneratorProvider` resolves the API key from Remote Config and is shared by every AI
   feature. `AiFlashcardGenerator` accepts an injectable `OkHttpClient` so it can be unit tested
   without the network; `domain/DeckNaming` derives the default deck title from the file name or topic.
+- Every generated card also carries a **`hint`** in the same response: one or two sentences that nudge
+  the student without stating or paraphrasing the answer. `DocumentImportViewModel` and
+  `TutorViewModel` persist it on `CardEntity.hint`, so the study screen shows it **instantly, with no
+  network call**. `parseFlashcards` sanitises it (trim, 240-char word-boundary cap, and `null` when it
+  contains the answer verbatim — a leak costs the hint, never the card). Cards created before this
+  existed, and the debug sample data, have `hint == null`; the study screen then falls back to
+  `generateHint` (which applies the same trim/cap/leak rule) and saves the result via
+  `FlashcardRepository.saveHint(...)`, which uses a targeted `UPDATE` so it cannot clobber scheduling
+  state.
 - The same generator also backs the study screen's hint and the tutor's grading, all sharing one
   `requestModelText` call: `generateHint(question, answer)` (a nudge that must not reveal the answer),
   `evaluateAnswer(question, referenceAnswer, studentAnswer)` (returns an `AnswerEvaluation` whose
   0-100 score comes from the model and is clamped, never invented) and
   `generateExplanation(...)` behind the accuracy card's "View more explanation" button.
+- Those three are **latency-sensitive**, so they pass the generator's `fastThinkingLevel` and send
+  `generationConfig.thinkingConfig.thinkingLevel = "low"`: Gemini 3.x thinks at `medium`/`high` by
+  default, and the non-streaming call shows nothing until thinking and the answer are both done.
+  `generateFlashcards` deliberately sends no level (card quality wants the default). The field is
+  emitted only for `gemini-3*`/`gemini-4*`/`*-latest` because Gemini 2.x rejects `thinkingLevel`
+  (it uses `thinkingBudget`). Do **not** add a small `maxOutputTokens` to cut latency — the API counts
+  thought tokens against it, so it truncates to empty output instead (decision D-014).
 - `TutorViewModel` has two modes: plain chat turns a message into cards in the "AI Tutor" deck, while
   a `GradedCard` (handed over by `MainActivity.goTutor(question, answer, deckId)`) makes it grade the
   student's reply and emit a `Msg.ACCURACY` rendered by `item_chat_accuracy.xml`. `StudyViewModel`
@@ -116,8 +137,10 @@ calls on the JVM don't throw.
   never be rated blind. The selected chip wears `bg_segment_selected` like the Create screen's
   Topic/PDF toggle. The UI label for `Sm2Scheduler.RATING_MEDIUM` is "Normal" (`@string/normal`);
   the domain constant keeps the SM-2 name.
-- `StudyViewModel` also owns the AI hint (`requestHint()` → `hint` / `isHintLoading`), which is not
-  persisted and is cleared when the card changes.
+- `StudyViewModel` owns the hint (`requestHint()` → `hint` / `isHintLoading`). A card with a stored
+  `hint` renders it immediately with no spinner and no network; a card without one calls
+  `generateHint`, shows the result, then persists it with `repository.saveHint(...)` (best-effort).
+  The on-screen hint is cleared when the card changes.
 
 ## Firebase / secrets
 
@@ -125,6 +148,15 @@ calls on the JVM don't throw.
 - The Gemini API key is **not** in `local.properties` or `BuildConfig`. It is read at runtime from
   Firebase Remote Config under the key `gemini_api_key` (default empty → AI import stays disabled until
   configured).
+- The **model id** also comes from Remote Config, under `gemini_model`, defaulting to
+  `AiFlashcardGenerator.DEFAULT_MODEL` (`gemini-flash-latest`; `resolveModel()` / `endpointFor()`).
+  A retired model id fails with `404` for every AI feature at once — `gemini-2.0-flash` was shut down
+  on 2026-06-01 exactly that way — which is why the id is configuration rather than a constant: a
+  retirement becomes a console change, not a release (decision D-013). Blank or malformed values fall
+  back to the default, and a leading `models/` is stripped so an id can be pasted from the API listing.
+- The app does **not** use the Firebase AI Logic SDK (`firebase-ai`). Enabling Gemini Developer API on
+  that console page does not configure this app: it reads the key from Remote Config and calls the
+  Gemini REST API directly through OkHttp. If AI reports `404`, check `gemini_model` before the code.
 
 ## Sample data (debug builds only)
 
@@ -215,9 +247,9 @@ navigation graphs, AndroidManifest.xml, and shared models.
 
 In this repo the shared files are: `build.gradle.kts`, `app/build.gradle.kts`,
 `gradle/libs.versions.toml`, `gradle/gradle-daemon-jvm.properties`, `settings.gradle.kts`,
-`gradle.properties`, `app/src/main/AndroidManifest.xml`, `res/values/strings.xml`, `AGENTS.md`,
-`handoff.md`, everything under `docs/ai-workforce/`, and `.opencode/**`. **No specialist owns
-these** — only the orchestrator changes them, one at a time.
+`gradle.properties`, `app/src/main/AndroidManifest.xml`, `res/values/strings.xml`, `README.md`,
+`AGENTS.md`, `handoff.md`, everything under `docs/ai-workforce/`, and `.opencode/**`. **No specialist
+owns these** — only the orchestrator changes them, one at a time.
 
 The orchestrator is also the **handoff maintainer**: it is the only agent allowed to write
 `handoff.md` and `docs/ai-workforce/**`. Every other specialist is explicitly denied those paths

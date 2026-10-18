@@ -20,18 +20,24 @@ claim against the repository before acting on it.
 
 ## 2. Current Status
 
-- **Overall status:** `IN_PROGRESS`
-- **Last updated:** 2026-10-19 01:45 (+08:00) — immediately after `T-005` landed.
-- **Current phase:** the workforce is complete **and committed**. `T-001`, `T-002`, `T-003a` and
-  `T-005` are `DONE`. Nothing is in flight. `main` is local-only, ahead of the pre-workforce
-  baseline `4bc2c48` by the two substantive commits plus `docs:` record updates — check
-  `git log --oneline`, this document does not pin its own head. **No push has been made.**
-- **Last verified build:** `.\gradlew.bat assembleDebug` → `BUILD SUCCESSFUL in 9s` (2026-10-19)
-- **Last verified tests:** `.\gradlew.bat testDebugUnitTest` → PASS at 00:45 on 2026-10-19
-  (30/30 up-to-date, exit 0, JVM suite). `.\gradlew.bat connectedDebugAndroidTest` → PASS at 00:57
-  on 2026-10-19 on `emulator-5554` (Pixel_9, API 36) — but that run covered only the pre-existing
-  `ExampleInstrumentedTest`; at 01:16 the orchestrator forced a fresh run of both suites — **11 instrumented tests** (10 new in
-  `AppDatabaseTest`) and **57 JVM tests / 7 suites**, 0 failures across both.
+- **Overall status:** `IN_PROGRESS` — features implemented. **Live AI works** (the user rebuilt with
+  the `T-009` patch and confirmed generation). Two follow-on changes are applied and **compile- and
+  test-unverified**: hint thinking level (`T-012`) and stored pre-generated hints (`T-014`).
+- **Last updated:** 2026-10-19 — AI confirmed working after `T-009`; hint latency root-caused and
+  patched (`T-012`); handoff corrected.
+- **Current phase:** AI polish. The three AI blockers are closed:
+  1. the user configured `gemini_api_key` in Remote Config, and it is now served;
+  2. `error 404` was root-caused: `AiFlashcardGenerator` hardcoded `gemini-2.0-flash`, which Google
+     **shut down on 2026-06-01**, so every AI feature (Create, Tutor, Hint) failed identically;
+  3. the user rebuilt/reinstalled and reported **"it worked"** — live generation is confirmed by the
+     only evidence that counts (a real request against the real model).
+- **Correction to an earlier claim:** a previous entry in this file recorded the app as `DONE` with
+  build and tests suppressed. That was wrong — `DONE` here requires build + tests + review, and it is
+  now known that the AI path was broken at the time. Do not restore that claim.
+- **Last verified build:** **none this session.** The user invoked `DO NOT BUILD AND TEST`, so the
+  patch in §4.4 is unverified by the compiler. The last green compile/test/assemble runs are in §11
+  and **predate this change**.
+- **Last verified tests:** none this session — the JVM suite has not been run against the §4.4 patch.
 
 ## 3. Architecture and Constraints
 
@@ -47,8 +53,12 @@ claim against the repository before acting on it.
 - **Persistence:** Room 2.8.5, `AppDatabase` version 2, `exportSchema = false`, hand-written
   `MIGRATION_1_2`. Multi-table writes run in `withTransaction` inside the repository.
 - **Network/API integrations:** Gemini `generateContent` via `data/service/AiFlashcardGenerator`
-  (OkHttp + Moshi), API key from Firebase Remote Config key `gemini_api_key`; Apache PDFBox 2.0.24
-  for on-device PDF extraction; Firebase Remote Config for key resolution.
+  (OkHttp + Moshi), API key from Firebase Remote Config key `gemini_api_key`; **the model id also
+  comes from Remote Config** (`gemini_model`, default `gemini-flash-latest` via
+  `AiFlashcardGenerator.DEFAULT_MODEL` + `endpointFor()` — see D-013, added because the previously
+  hardcoded `gemini-2.0-flash` was retired and broke every AI feature); Apache PDFBox 2.0.24 for
+  on-device PDF extraction; Firebase Remote Config for key resolution. The app does **not** use the
+  Firebase AI Logic SDK.
 - **Minimum Android SDK:** 26.
 - **Required design conventions:** the 13 `res/layout/` files match a designer's reference; all
   user-facing copy in `res/values/strings.xml`; UI label "Normal" for `Sm2Scheduler.RATING_MEDIUM`.
@@ -102,16 +112,156 @@ claim against the repository before acting on it.
   and `code-reviewer` show the matching `deny:` rules; `BUILD SUCCESSFUL in 6s` at 00:45; no
   application source touched.
 
+### 4.4 Live AI bring-up — `404` root-caused and patched (`T-009`, under `T-004`)
+
+- **Feature:** make the Gemini path actually work against a configured key.
+- **Status:** patch **applied**, but **never compiled and never tested** — the user invoked
+  `DO NOT BUILD AND TEST`. This is recorded work, not completed work.
+- **Symptom:** after the user configured `gemini_api_key`, every AI feature reported `error 404`.
+- **Root cause:** `AiFlashcardGenerator.DEFAULT_ENDPOINT` hardcoded
+  `.../v1beta/models/gemini-2.0-flash:generateContent`. Google **shut `gemini-2.0-flash` down on
+  2026-06-01**, so the id is dead and the API answers `404`. Create, Tutor and Hint all share
+  `AiGeneratorProvider`, so all three broke at once.
+- **Why no test caught it:** `AiFlashcardGeneratorTest` injects `endpoint = "http://localhost/test"`,
+  so the real model id is never exercised — 57 green JVM tests are fully compatible with a broken AI
+  path. This is a coverage limit, not a flake.
+- **Also established:** the app does **not** use the Firebase AI Logic SDK (no `firebase-ai`
+  dependency, no `GenerativeModel`/`FirebaseAI` symbol anywhere), so enabling "Gemini Developer API"
+  in the AI Logic console cannot configure it. The app reads a raw API key from Remote Config and
+  calls the REST API itself.
+- **Implementation:** `DEFAULT_MODEL = "gemini-flash-latest"`; `resolveModel()` / `isValidModelId()` /
+  `endpointFor()` validating against `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$` and stripping a leading
+  `models/` (the exact form the `ListModels` response prints, so an id can be pasted from it); an
+  optional Remote Config override `gemini_model` read in `AiGeneratorProvider.create()`; the API key
+  is now `.trim()`ed (a pasted trailing newline would otherwise corrupt the query string); and the
+  provider logs the model **actually in use**, warning when a configured value was rejected — that log
+  line is the designated diagnostic for the next retirement, so it must not claim a dead value is live.
+  Decision D-013.
+- **Independent review:** `code-reviewer`, session `ses_eafb9783dffe7vIY7q6Sb4xTuN` —
+  **APPROVE WITH NITS**, no BLOCKER, no HIGH. Inspection-only, because Gradle was off-limits too, and
+  it said so explicitly. It confirmed: companion initialisation order is safe, `const val` → `val` on
+  `DEFAULT_ENDPOINT` is harmless (its only reference is the constructor default), the parenthesised
+  `try` is load-bearing and valid, `app/src/test/**` still compiles, the validator cannot redirect the
+  request off-host, and **no existing test could have caught the `404` — nor could any hermetic/offline
+  JVM test**, since only a live call can know a model was retired (a networked unit test could, but at
+  the cost of a real key and a flaky suite). Its MEDIUM findings are fixed in the tree; the
+  remaining ones are §12 follow-ups.
+- **Second review pass:** `code-reviewer`, session `ses_eafb29925ffewZ517GkywsyHfr` — re-read the fixes
+  to its own findings plus the `T-010` test file. **APPROVE WITH NITS**, no BLOCKER, HIGH or MEDIUM.
+  It confirmed the three functions cannot disagree (one `normalizeModel`, one pattern), that the
+  provider can no longer log a value it is not using, that the tighter pattern and `models/` stripping
+  break nothing previously accepted, that the new test is compile-safe by inference, and that **no
+  assertion in it would fail today**. Its remaining LOW/NIT items (stale regex in D-013, a wrong test
+  count, "next app start" wording, the "no new JVM test" overstatement, logging the raw value) are
+  fixed in this tree.
+- **Relevant files:** `data/service/AiFlashcardGenerator.kt`, `data/service/AiGeneratorProvider.kt`,
+  `README.md`.
+- **Verification performed:** none. Static inspection plus a web search for the model's retirement
+  status, then a grep proving no code path references `firebase-ai`.
+- **Evidence:** no Gradle command was run this session. See §11, and the `T-004 / T-009` entry in
+  `docs/ai-workforce/test-results.md` where every row is `NOT_RUN`.
+- **What would prove it:** `:app:compileDebugKotlin` + `testDebugUnitTest`, then one real generation
+  on a device. Cheaper first step, outside the app:
+  `curl "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY"`.
+- **Outcome:** the user rebuilt/reinstalled and reported **"it worked"**. `T-009` is functionally
+  confirmed by a live request; its Gradle rows are still `NOT_RUN` here because the build happened
+  outside this session.
+
+### 4.5 Hint latency — thinking level was never set (`T-012`)
+
+- **Feature:** the study screen's "Request hint" felt slow (several seconds of spinner).
+- **Status:** patch **applied**, **never compiled and never tested** — the `DO NOT BUILD AND TEST`
+  freeze still stands. Recorded work, not completed work.
+- **Root cause:** `buildRequestBody()` sent only `{"contents":[...]}` — **no `generationConfig` at
+  all**. `gemini-flash-latest` resolves to a Gemini 3.x Flash model, and those **think by default**
+  (docs: dynamic thinking, default `medium` on 3.6/3.8 Flash, `high` on 3 Flash). Thinking tokens
+  are produced before the first visible token, and the app uses non-streaming `generateContent`, so
+  the hint could not appear until thinking *and* the answer had finished. Nothing in the code chose
+  that: it was the model default.
+- **Fix:** `AiFlashcardGenerator` gained `fastThinkingLevel` and sends
+  `generationConfig.thinkingConfig.thinkingLevel = "low"` for the three short calls — hint, answer
+  grading, explanation. `generateFlashcards` deliberately keeps the model default because card
+  quality benefits from reasoning. `low` is the right level: the docs describe it as
+  "minimises latency and cost", and `minimal` is **not** an option because `gemini-3.7-flash` and
+  `gemini-3.8-flash` reject it with an error — a Remote Config model change must not be able to break
+  hints via a constant.
+- **Deliberately not done:** no `maxOutputTokens` cap. The docs state it counts **thought tokens
+  too**, so a small cap makes the model hit `MAX_TOKENS` and return truncated/empty output — it would
+  trade latency for "The AI returned an empty hint". Lowering the thinking level is the documented
+  way to cut latency.
+- **Compatibility guard:** Gemini 2.5 models do not support `thinkingLevel` (they use
+  `thinkingBudget`), and an unknown field is a request error. `AiGeneratorProvider` therefore emits
+  the field only for `gemini-3*`, `gemini-4*` and the version-agnostic `*-latest` aliases; for any
+  other id the request is byte-for-byte what it was before. Moshi omits null properties, which is what
+  keeps that path unchanged.
+- **Secondary contributors (not fixed, documented):** the first AI call on each study screen also
+  awaits `RemoteConfig.fetchAndActivate()` inside `AiGeneratorProvider.create()`; the generator is
+  cached per `StudyViewModel`, so that is one round trip per screen, not per hint. And the call is not
+  streamed, so the result still arrives in one piece — streaming would show the first words sooner
+  but is a larger change (SSE parsing).
+- **Evidence:** code read end to end (`StudyViewModel.requestHint` → `generateHint` →
+  `requestModelText` → `buildRequestBody`), and the REST shape `generationConfig.thinkingConfig.
+  thinkingLevel` confirmed against `ai.google.dev/gemini-api/docs/generate-content/thinking`
+  (last updated 2026-10-14).
+- **Relevant files:** `data/service/AiFlashcardGenerator.kt`, `data/service/AiGeneratorProvider.kt`,
+  `app/src/test/.../AiFlashcardGeneratorTest.kt` (three new wire tests, `T-012`).
+- **Verification performed:** none — inspection and documentation only. See §11.
+
+### 4.6 Pre-generated, stored hints (`T-014`)
+
+- **Feature:** the study screen's hint should be available the moment the student taps, not generated
+  on demand.
+- **Status:** **applied, never compiled and never tested** — the freeze stands. Recorded work, not
+  completed work.
+- **Design:** the hint is generated in the **same** Gemini call as question/answer, so there is no
+  extra request at import time and no extra quota. `GeneratedCard.hint` is persisted on
+  `CardEntity.hint` by both card-creation paths (`DocumentImportViewModel`, `TutorViewModel`), so
+  `StudyViewModel.requestHint()` can render it with no network and no spinner. Cards created before
+  this change and the debug sample data have `hint == null`; the study screen then uses the existing
+  `generateHint` and saves the result via `FlashcardRepository.saveHint(...)` for next time.
+- **Leak guard:** a hint is only useful if it does not give the answer away, and pre-generation has no
+  second review pass. `parseFlashcards` trims it, caps it at 240 chars on a word boundary, and drops
+  it to `null` if it contains the answer verbatim (case-insensitive, answers ≥ 3 chars). A bad hint
+  costs the hint, never the card. Paraphrased leaks are the prompt's responsibility — documented, not
+  detected.
+- **Schema:** `cards.hint` is a **nullable** TEXT column, so `null` (not `""`) is the real "not
+  generated yet" state. Room goes **2 → 3** with a hand-written `MIGRATION_2_3`
+  (`ALTER TABLE cards ADD COLUMN hint TEXT`, guarded by the existing `hasColumn`). No table rebuild,
+  no row rewritten, so decks, cards, scheduling state and review history are preserved.
+- **Concurrency:** `saveHint` uses `UPDATE cards SET hint = :hint, updatedAt = :updatedAt WHERE id =
+  :cardId` rather than read-modify-write, so a hint written while `processCardReview` commits cannot
+  erase the review's scheduling fields. The write is best-effort at the call site: the hint is shown
+  before it is saved, and a failure is logged, not surfaced, because it only costs a regeneration.
+- **Deliberately not done:** no hints are invented for the debug sample data (fabricated study help is
+  worse than a lazy generation), and no migration test was added — `MIGRATION_2_3` is private and the
+  DB is `exportSchema = false`, the same T-006 blocker.
+- **Relevant files:** `data/service/AiFlashcardGenerator.kt`, `data/local/{entities/CardEntity,
+  AppDatabase,dao/CardDao}.kt`, `data/repository/FlashcardRepository.kt`,
+  `ui/document/DocumentImportViewModel.kt`, `ui/study/StudyViewModel.kt`, `ui/main/TutorViewModel.kt`,
+  `app/src/test/.../AiFlashcardGeneratorTest.kt`, `app/src/androidTest/.../AppDatabaseTest.kt`.
+- **Verification performed:** none. Every Gradle row is `NOT_RUN`. The migration is the riskiest part:
+  a mismatch between the entity and the migrated schema throws on first `getDatabase()` and takes
+  every screen with it.
+
 ## 5. Active Work
 
-**None in flight.** `T-003a` is `DONE` — completed, independently re-verified, and reviewed
-(§4.4, `docs/ai-workforce/logs/task-003.md`). `T-005` is also `DONE`: with explicit user
-authorization the workforce and the tests were committed as `11b7058` and `e106f30`, and the
-working tree is clean, so the "untracked and unrecoverable" risk recorded earlier is resolved.
-Nothing has been pushed.
+**Four tasks are in flight and all are unverified: `T-009`** (§4.4) — the retired-model patch, now
+functionally confirmed live but still never compiled in this session — **`T-010`**, the untracked
+model-resolution test, **`T-012`** (§4.5), the thinking-level patch plus its tests, **and `T-014`**
+(§4.6), the pre-generated hint (generator + schema **v3** + three UI paths + tests). Promote any of
+them only after `.\gradlew.bat :app:compileDebugKotlin` and `.\gradlew.bat testDebugUnitTest` are
+green, and give the `T-014` migration a real upgrade run on a device. The user's standing
+`DO NOT BUILD AND TEST` must be lifted first; do not run Gradle behind it.
+
+**`T-005` is `DONE`:** with explicit user authorization the workforce and the tests were committed as
+`11b7058` and `e106f30`. Nothing has been pushed, so the working tree still holds the only copy of
+`T-009`.
 
 **Next task (not started):** `T-007` — the `DocumentEntity` missing foreign key found by the
 `T-003a` review, owned by `data-engineer`. See §6 for the alternatives (`T-004`, `T-006`, `T-008`).
+
+**Last verified-complete task:** `T-003a` — completed, independently re-verified by the orchestrator,
+and reviewed (`docs/ai-workforce/logs/task-003.md`).
 
 ### How `T-003a` was delegated (completed record)
 
@@ -152,11 +302,17 @@ Nothing has been pushed.
 |----|------|--------------|----------|--------|
 | T-002 | Handoff protocol + task-state split | — | high | DONE |
 | T-003a | In-memory Room persistence tests on a device (`app/src/androidTest/**`) | T-002 | high | DONE |
-| T-004 | Configure `gemini_api_key` in Firebase Remote Config and verify the live AI flow end to end | T-002 | medium | NOT_STARTED |
+| T-004 | Configure `gemini_api_key` in Firebase Remote Config and verify the live AI flow end to end | T-002 | medium | IN_PROGRESS — key configured and **live flow confirmed**: the user rebuilt with `T-009` and reported "it worked". Gradle rows remain `NOT_RUN` here because that build happened outside this session; one Create/Tutor/Hint run each is still unrecorded |
 | T-005 | Commit `.opencode/`, `docs/`, `handoff.md`, `AGENTS.md` (+ the `T-003a` tests) — user-authorized | T-002 | low | DONE |
 | T-006 | Real `MIGRATION_1_2` test — blocked by `MIGRATION_1_2` being private, `exportSchema = false`, and missing `androidTestImplementation(room-testing)`; spans `data-engineer` + orchestrator + qa-engineer | T-003a | medium | NOT_STARTED |
 | T-007 | `DocumentEntity` declares an index on `deckId` but **no foreign key** (its KDoc falsely claims one), so deleting a deck orphans its documents including imported PDFs' full `extractedText` — silent storage leak. Found by the `T-003a` review. Fix = FK + CASCADE = Room schema 2→3 with a row-preserving migration, or the cheap interim: correct the KDoc and delete documents by `deckId` in the deck-delete path | T-003a | medium | NOT_STARTED |
 | T-008 | Test follow-ups from the `T-003a` review: the repository's own `withTransaction` in `processCardReview` is still untested (the rollback test hand-rolls its own), no deck-deletion cascade test, `catch (t: Throwable)` should be `SQLiteConstraintException`, and one test name overstates what it asserts | T-003a | low | NOT_STARTED |
+| T-009 | Retired model id `gemini-2.0-flash` hardcoded in `AiFlashcardGenerator.DEFAULT_ENDPOINT` → every AI feature returns `404` (Google shut the model down 2026-06-01). Patch: `DEFAULT_MODEL = "gemini-flash-latest"`, `resolveModel()` / `isValidModelId()` / `endpointFor()` with `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$` validation and `models/`-prefix stripping, optional Remote Config override `gemini_model`, API key `.trim()`ed, provider logs the model actually in use | T-004 | **high** — all AI features are dead without it | IN_PROGRESS — applied and reviewed (`code-reviewer`, APPROVE WITH NITS, no BLOCKER/HIGH, inspection-only) but **never compiled or tested**; do not promote to DONE without `:app:compileDebugKotlin` + `testDebugUnitTest` |
+| T-010 | Unit-test the model-resolution fallback contract (`resolveModel` / `isValidModelId` / `endpointFor`: null, blank, `models/` prefix, junk, 64-vs-65 chars, exact URL). Raised by the `T-009` review — the new public surface shipped with zero tests | T-009 | medium | IN_PROGRESS — file written and orchestrator-inspected, **never compiled or run**; untracked, so `git clean -fd` deletes it |
+| T-011 | Two `T-009` review leftovers in `data/service/**`: `GeminiCandidate.finishReason` is parsed and never read, so a `MAX_TOKENS` truncation surfaces as the uninformative "The AI returned an empty response"; and `"$endpoint?key=$apiKey"` interpolates the key unencoded (`&`/`#` would corrupt it) | T-009 | low | NOT_STARTED |
+| T-012 | Hint latency: the request sent no `generationConfig`, so Gemini 3.x thought at its default level (`medium`/`high`) before writing anything and the non-streaming call returned only at the end. Fix: `fastThinkingLevel` + `generationConfig.thinkingConfig.thinkingLevel = "low"` for hint/grading/explanation only; `generateFlashcards` keeps the model default; `AiGeneratorProvider` emits the field only for `gemini-3*`/`gemini-4*`/`*-latest` (Gemini 2.x rejects it); no `maxOutputTokens` because it counts thought tokens and truncates to empty. Three wire tests added to `AiFlashcardGeneratorTest` | T-009 | medium | IN_PROGRESS — applied, `code-reviewer` APPROVE WITH NITS (inspection-only), **never compiled or run** |
+| T-013 | `T-012` review follow-ups: (a) MEDIUM — `AiGeneratorProvider.acceptsThinkingLevel()` is the only thing that can turn a working hint into a 400, and no test covers the model→level policy; extract a pure `internal fun supportsThinkingLevel(model)` and table-test the documented rows; (b) LOW — only `generateHint` is asserted to pass the level, so a dropped argument in `evaluateAnswer`/`generateExplanation` would pass | T-012 | medium | NOT_STARTED |
+| T-014 | Hints are pre-generated in the same call as the card and stored, so "show hint" is instant instead of a multi-second request. `GeneratedCard.hint` (sanitised: trim, 240-char word-boundary cap, null when it leaks the answer verbatim) → `CardEntity.hint` (nullable TEXT, Room **2→3** + `MIGRATION_2_3`); import and Tutor paths persist it; `StudyViewModel` shows a stored hint with no network and lazily generates + `saveHint`s for old cards/sample data; `saveHint` is a targeted UPDATE so it cannot clobber scheduling state | T-009 | **high** — the UX request | IN_PROGRESS — applied across four lanes, tests written, **never compiled or run**; the migration needs a real v2→v3 upgrade run |
 
 ## 7. Technical Decisions
 
@@ -176,11 +332,21 @@ Full log with alternatives: `docs/ai-workforce/decisions.md`. Summary:
 
 ## 8. Known Bugs and Blockers
 
-**One real defect is now known** — `DocumentEntity` has no foreign key to decks, so deleting a
-deck orphans its document rows (including imported PDFs' full `extractedText`): a silent storage
-leak, not user-visible breakage, since every document query is deck-scoped or by primary key.
-Found by the `T-003a` review, tracked as `T-007`, not yet fixed. Everything else below is an
-*unverified area*, which is not the same as a bug.
+**Two real defects are known.** One is **open** — `DocumentEntity` has no foreign key to decks, so
+deleting a deck orphans its document rows (including imported PDFs' full `extractedText`): a silent
+storage leak, not user-visible breakage, since every document query is deck-scoped or by primary key.
+Found by the `T-003a` review, tracked as `T-007`, not yet fixed. The other was **found by the user
+and patched but not verified** — the retired `gemini-2.0-flash` model id (`T-009`, §4.4), which made
+every AI feature return `404`. Everything else below is an *unverified area*, which is not the same
+as a bug.
+
+- **AI is broken as of this record** unless `T-009` is built and tested. The patch is in the working
+  tree only. If `:app:compileDebugKotlin` has not been run since 2026-10-19, treat the AI path as
+  non-functional and unverified — do not read the 57-test green suite as evidence about it.
+- **A retired model id is a recurring failure mode, not a one-off:** Google shut `gemini-2.0-flash`
+  down on 2026-06-01 and the app had no way to react without a code change. `T-009` moves the id to
+  Remote Config (`gemini_model`) so the next retirement is a console change. If a future `404`
+  appears, check `gemini_model` **before** touching the code.
 
 - **Unverified areas remaining after `T-003a`:** Flow re-emission over time (the tests read
   `first()` snapshots), concurrent writers, real-file (non-in-memory) database behaviour, and —
@@ -191,7 +357,10 @@ Found by the `T-003a` review, tracked as `T-007`, not yet fixed. Everything else
   version-1 database. Blocked by three cross-lane changes. The exact blockers are already recorded
   under **T-006 — known blockers** in `docs/ai-workforce/task-board.md`; do not re-derive them.
 - **Unverified area — live AI:** Gemini calls and Remote Config fetches cannot run on the JVM; only
-  the stubbed-OkHttp unit tests pass. Next diagnostic: configure the key on a device and run `T-004`.
+  the stubbed-OkHttp unit tests pass. The key is now configured by the user (T-004, half done), but
+  **the model-id fix (`T-009`) has never been compiled**, so the AI path is unverified *and*
+  currently broken until it is built. `AiFlashcardGeneratorTest` can never cover this: it injects
+  `endpoint = "http://localhost/test"` and therefore never exercises the configured model id.
 - **Documentation defect (fixed in `T-002`):** `AGENTS.md` claimed the old handoff was at
   `git show HEAD:handoff.md`. It does not exist at HEAD; it was deleted in `d5776c8` and is only
   reachable at `d5776c8^:handoff.md`. That file described an obsolete Activity-based phase and is
@@ -237,15 +406,27 @@ Found by the `T-003a` review, tracked as `T-007`, not yet fixed. Everything else
 
   Everything after them is `docs: record …` commits updating this record. The pre-workforce
   baseline is `4bc2c48`.
-- **Uncommitted changes:** **none** — the working tree is clean, nothing staged. The entire
-  workforce and the `T-003a` tests are committed, so `git checkout` / `git reset --hard` now
-  recover everything. No push was made (`git push` still needs its own authorization).
-- **Files currently being modified:** none. This file is edited only to record state.
+- **Uncommitted changes:** **the `T-009` + `T-012` patches and their record are uncommitted — 9 tracked
+  files, modified, plus 1 untracked test file.** Verify with `git status --short` / `git diff --stat`
+  rather than trusting an enumeration here (an enumeration is what went stale last time):
+  `AGENTS.md`, `README.md`, `handoff.md`, `data/service/AiFlashcardGenerator.kt`,
+  `data/service/AiGeneratorProvider.kt`, `app/src/test/.../AiFlashcardGeneratorTest.kt` (the `T-012`
+  wire tests), and `docs/ai-workforce/{decisions,task-board,test-results}.md`; untracked:
+  `app/src/test/java/.../data/service/AiModelResolutionTest.kt` (`T-010`, never compiled).
+  The Kotlin files are the ones that matter: the untracked-and-unrecoverable risk the protocol exists
+  to prevent now applies to them, because `git reset --hard` / `git checkout HEAD -- <path>` discard
+  *modified* content and `git clean -fd` deletes the *untracked* test. Commit or stash before any
+  history-rewriting or cleaning command; commit only with explicit authorization. No push was made.
+- **Files currently being modified:** the files above, one logical change (`T-009` + `T-010` + `T-012`
+  plus their record). This file is edited only to record state.
 - **Unresolved merge conflicts:** none. No stashes (`git stash list` is empty).
 - **Backup/recovery notes:**
-  - Everything is tracked, so `git checkout HEAD -- <path>` and `git reset --hard` recover all of
-    it. The unrecoverable-untracked risk recorded earlier in this document is **resolved** by
+  - Everything is tracked, so `git checkout HEAD -- <path>` and `git reset --hard` recover **committed**
+    work. The unrecoverable-untracked risk recorded earlier in this document is **resolved** by
     `T-005`.
+  - **That protection does not cover the current tree.** The uncommitted `T-009` change is *modified*
+    content, so `git checkout HEAD -- <path>` or `git reset --hard` destroys it outright — it is not a
+    recovery command for work in progress. Commit or stash first.
   - `T-005` produced two commits rather than one on purpose: the workforce config
     (`11b7058`) and the tests (`e106f30`) are separate logical changes, so either can be reverted
     without touching the other.
@@ -279,21 +460,116 @@ Found by the `T-003a` review, tracked as `T-007`, not yet fixed. Everything else
 Compile, unit tests, and APK assembly are distinct from runtime verification: nothing here proves
 the app behaves correctly on a device.
 
+### 2026-10-19 · `T-004` / `T-009` · live-AI bring-up — **nothing was built, nothing was tested**
+
+Both tables below are recorded so a future session cannot mistake this session's work for verified
+work. The user invoked `DO NOT BUILD AND TEST`.
+
+| Command | Result | Relevant output | Date/time |
+|---|---|---|---|
+| `.\gradlew.bat :app:compileDebugKotlin` (`T-009`) | **NOT_RUN** | Suppressed by the user's instruction. The `T-009` patch is **compile-unverified**. | 2026-10-19 |
+| `.\gradlew.bat testDebugUnitTest` (`T-009`) | **NOT_RUN** | Same. The last green JVM run (57 tests / 7 suites) **predates** `T-009` and says nothing about it. | 2026-10-19 |
+| `.\gradlew.bat assembleDebug` (`T-009`) | **NOT_RUN** | Same. No APK containing the patch has been built. | 2026-10-19 |
+
+| Diagnostic (static, not a test) | Result | Relevant output | Date/time |
+|---|---|---|---|
+| grep for `firebase-ai` / `FirebaseAI` / `GenerativeModel` / `com.google.firebase.ai` | PASS (diagnostic) | **No matches** — the app cannot be configured through the Firebase AI Logic console, which is exactly what the user had enabled. | 2026-10-19 |
+| grep for `gemini-2.0-flash` / `DEFAULT_ENDPOINT` | PASS (diagnostic) | One production hit, in `AiFlashcardGenerator`. The tests override the endpoint (`endpoint = "http://localhost/test"`), so the suite never asserted the real model id. | 2026-10-19 |
+| read `app/google-services.json` → `project_info` | PASS (diagnostic) | Project `uepflip-flashcard` (#158917882025), client `com.example.uepflip_flashcard` — Remote Config parameters must exist in this project. | 2026-10-19 |
+| web search: `gemini-2.0-flash` shutdown status | PASS (diagnostic) | Google shut the model down **2026-06-01**; `generativelanguage.googleapis.com` now answers `404` for it. External evidence, not repo verification. | 2026-10-19 |
+| user-reported device error `error 404` | OBSERVED (by user) | Not reproduced here. Only reachable after a completed Gemini round trip, so it also proves Remote Config now serves the key. | 2026-10-19 |
+| `code-reviewer` review of the `T-009` diff | **APPROVE WITH NITS** | session `ses_eafb9783dffe7vIY7q6Sb4xTuN`. No BLOCKER, no HIGH. **Inspection-only** — it could not run Gradle either, so it did not verify compilation; it verified companion-init order, the `const val`→`val` change, the parenthesised `try`, that `app/src/test/**` still compiles, and that no existing test could have caught the `404`. MEDIUM findings fixed in the tree; remainder → §12. | 2026-10-19 |
+| `git status --short` / `git diff --stat` after the fix | OK | **8 files modified, 0 staged**: `AGENTS.md`, `README.md`, `handoff.md`, the two `data/service` Kotlin files, and `docs/ai-workforce/{decisions,task-board,test-results}.md`; plus **1 untracked** file, the `T-010` test. The Kotlin files are **uncommitted and unbuilt**. | 2026-10-19 |
+| `T-010` — new `AiModelResolutionTest.kt` authored by `qa-engineer` | **INSPECTED, NOT RUN** | session `ses_eafb53eebffeYDDlUwTpJlMhgm`, no Gradle invoked (freeze). 20 `@Test` methods; orchestrator read the file in full and hand-checked its expected values against the production source, and `code-reviewer` re-read it in a second pass (compile-safe by inspection, no assertion would fail today). **Never compiled** — not coverage. | 2026-10-19 |
+| `code-reviewer` second pass on the fixes + `T-010` | **APPROVE WITH NITS** | session `ses_eafb29925ffewZ517GkywsyHfr`. No BLOCKER/HIGH/MEDIUM. Inspection-only (it could not run `git diff` either). Confirmed: the three resolver functions agree structurally, the provider can no longer log a value it is not using, the tighter pattern breaks no previously-accepted id, and no assertion in the new test would fail today. Its LOW/NIT items are fixed in the tree. | 2026-10-19 |
+
+**No row above verifies the `T-009` patch.** No compiler and no test has seen it. The diagnostics
+explain *why* AI broke; they do not show that it works now.
+
+### 2026-10-19 · `T-012` · hint latency — **again nothing was built, nothing was tested**
+
+| Item | Result | Detail | Date/time |
+|---|---|---|---|
+| user-reported outcome of `T-009` after their own rebuild | **OBSERVED (by user)** | "it worked" — live generation now succeeds. `T-009` is functionally confirmed; the Gradle rows above remain `NOT_RUN` here. | 2026-10-19 |
+| read hint path (`StudyViewModel.requestHint` → `generateHint` → `requestModelText` → `buildRequestBody`) | PASS (diagnostic) | Request body was `{"contents":[...]}` only — no `generationConfig`, so no thinking level was ever chosen by the app. | 2026-10-19 |
+| checked `StudyFragment` for an artificial hint delay | PASS (diagnostic) | No `postDelayed`, no animation gate; the panel appears when state changes. The delay is the network/model call. | 2026-10-19 |
+| official docs: `generationConfig.thinkingConfig.thinkingLevel` | PASS (diagnostic) | `ai.google.dev/gemini-api/docs/generate-content/thinking` (updated 2026-10-14): thinking is on by default, `low` "minimises latency and cost", `minimal` **errors** on `gemini-3.7-flash`/`3.8-flash`, `maxOutputTokens` counts thought tokens and can truncate to empty. Confirms both the fix and the decision not to cap tokens. | 2026-10-19 |
+| `.\gradlew.bat :app:compileDebugKotlin` (`T-012`) | **NOT_RUN** | Freeze. The patch is compile-unverified. | 2026-10-19 |
+| `.\gradlew.bat testDebugUnitTest` (`T-012`) | **NOT_RUN** | Freeze. The three new `AiFlashcardGeneratorTest` cases are unrun; the last green JVM run (57 tests / 7 suites) predates them. | 2026-10-19 |
+| `.\gradlew.bat assembleDebug` (`T-012`) | **NOT_RUN** | Freeze. No APK contains the thinking-level change. | 2026-10-19 |
+| new tests inspected by the orchestrator | INSPECTED, NOT RUN | `qa-engineer` session `ses_eaf9d23a5ffer4XM4ezdBvTf67`, only `AiFlashcardGeneratorTest.kt` touched; diff read in full. Asserts the decoded wire field rather than raw string order. | 2026-10-19 |
+| `code-reviewer` review of the `T-012` diff | **APPROVE WITH NITS** | session `ses_eaf99e5e1ffeip80cfnSkktdQ7`. No BLOCKER, no HIGH. Inspection-only: no Gradle. Independently confirmed Moshi 1.15.0 omits nulls from `KotlinJsonAdapter` + `JsonWriter` (so the Gemini 2.x path is byte-identical), that the emitted body matches the documented REST shape, that every admitted id except the non-text `*-image`/`*-tts`/`*-live` variants accepts `low`, and that all four construction sites still compile by inspection. MEDIUM (policy predicate untested) and LOW (only `generateHint` covered) → `T-013`; the non-text-model caveat was added to `README.md`. | 2026-10-19 |
+
+**Unverified by any executable:** that the code compiles, that Moshi emits
+`{"generationConfig":{"thinkingConfig":{"thinkingLevel":"low"}}}` as expected, that the live endpoint
+accepts it for the resolved model, and that the hint actually gets faster. Those are four separate
+claims and only a build + a device run settle them.
+
+### 2026-10-19 · `T-014` · stored hints — **nothing was built, nothing was tested**
+
+| Item | Result | Detail | Date/time |
+|---|---|---|---|
+| Gemini request cost | unchanged count | The hint is part of the same `generateFlashcards` response, not a second call. Only the response grows. | 2026-10-19 |
+| `code-reviewer` review of the `T-014` diff | **APPROVE WITH NITS** | session `ses_eaf80c4a4ffemECtSF3DVCC9x5`. No BLOCKER/HIGH. Inspection-only. Confirmed the entity↔migration match, the v1→v2→v3 and v2→v3 paths, the guarded `hasColumn`, `null` vs `""` consistency, and that the stored-hint branch returns before `ensureGenerator()`. | 2026-10-19 |
+| review MEDIUM — non-string `hint` failed the whole import | **FIXED in the tree** | `FlashcardResponse` now parses `RawFlashcard.hint: Any?`; a non-string hint becomes `null` instead of throwing, so one bad hint cannot cost every card. | 2026-10-19 |
+| review MEDIUM — lazy hint bypassed sanitisation | **FIXED in the tree** | `generateHint` now runs its result through `sanitizeHint`, so the lazy fallback cannot display or store a leaked/overlong hint; an unusable hint is reported as an error. | 2026-10-19 |
+| review LOW/NIT — KDoc example, `saveHint` race wording, `CancellationException` | **FIXED in the tree** | `ATP` is 3 chars and is checked; the repository comment now states the narrower guarantee (a review can still write back a stale `null` hint, which is regenerated); the lazy save rethrows cancellation. | 2026-10-19 |
+| review MEDIUMs left open — migration test, repository/VM coverage, Unicode normalisation | **ROUTED to `T-015`** | A real v2→v3 upgrade run is the release gate; the private migration + `exportSchema = false` is the known `T-006` blocker. | 2026-10-19 |
+| `.\gradlew.bat :app:compileDebugKotlin` (`T-014`) | **NOT_RUN** | Freeze. | 2026-10-19 |
+| `.\gradlew.bat testDebugUnitTest` (`T-014`, 7 new cases) | **NOT_RUN** | Freeze. | 2026-10-19 |
+| `.\gradlew.bat connectedDebugAndroidTest` (`AppDatabaseTest`, 2 new cases) | **NOT_RUN** | Freeze; no device. | 2026-10-19 |
+| `.\gradlew.bat assembleDebug` (`T-014`) | **NOT_RUN** | Freeze. | 2026-10-19 |
+
+**The schema migration is the single riskiest unverified change in the tree.** A mismatch between
+`CardEntity` and the migrated `cards` table throws on the first `getDatabase()` and crashes every
+screen, so a fresh install is not enough — it needs an upgrade from a v2 database on a device.
+
 ## 12. Next Actions
 
-1. **Highest-priority action:** `T-007` — the `DocumentEntity` missing foreign key found by the
+1. **Highest-priority action:** get `T-009` + `T-012` compiled. Both patches are complete and
+   reviewed by inspection, but **nothing has compiled either**. Two cheap steps settle most of it:
+   - `.\gradlew.bat :app:compileDebugKotlin` then `.\gradlew.bat testDebugUnitTest` — **both are
+     suppressed by the user's standing `DO NOT BUILD AND TEST`; get that lifted first.** The run must
+     cover `AiModelResolutionTest` (`T-010`) and the three new `AiFlashcardGeneratorTest` cases
+     (`T-012`).
+   - `curl "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY"` — outside the app,
+     proves which models the key can actually serve. If `gemini-flash-latest` is not listed, set the
+     Remote Config parameter `gemini_model` to one that is (a leading `models/` is stripped, so the id
+     can be pasted straight from that response); no code change needed. New values apply the next time
+     an AI screen is opened.
+   - **After installing the `T-012` build:** request a hint twice on one card set and compare. If it is
+     still slow, the next suspects in order are the per-screen `RemoteConfig.fetchAndActivate()` in
+     `AiGeneratorProvider.create()` and the absence of streaming — not the thinking level.
+2. **Review follow-ups from the `T-009` review** (`code-reviewer`, session
+   `ses_eafb9783dffe7vIY7q6Sb4xTuN`; APPROVE WITH NITS, no BLOCKER/HIGH — the MEDIUM findings are
+   already fixed in the tree). Still open, cheapest first:
+   - **`qa-engineer` — done, unrun:** `app/src/test/.../data/service/AiModelResolutionTest.kt` (20 tests,
+     pure, no new dependency) now pins `resolveModel` / `isValidModelId` / `endpointFor` for `null`,
+     blank, `models/`-prefix, junk, 64-vs-65 chars, and the exact URL. It is **untracked and never
+     compiled**; run it before trusting it. It is regression insurance for the fallback contract — it is
+     explicitly **not** a retirement detector, because no JVM test can know Google retired a model.
+   - **`ai-engineer`, low (`T-011`):** `GeminiCandidate.finishReason` is parsed and never read, so a
+     `MAX_TOKENS` truncation surfaces as the uninformative "The AI returned an empty response" — newly
+     relevant, because the model can now change without a release.
+   - **`ai-engineer`, low (`T-011`):** `"$endpoint?key=$apiKey"` interpolates the key unencoded.
+     Pre-existing; the new `.trim()` covers the realistic case, but encoding closes `&`/`#`.
+3. **Then commit** — `T-009` and `T-012` touch `data/service/**` and have never been built. Commit
+   needs explicit authorization (AGENTS.md). Until then, one `git reset --hard` loses them.
+4. **Then close `T-004`** — the user confirmed live generation works after installing the `T-009`
+   build, which is the missing evidence. Record one Create, one Tutor grading and one Hint run on a
+   device before marking it `DONE`; the Gradle rows here are still `NOT_RUN`.
+5. **Open defect, unrelated to AI:** `T-007` — the `DocumentEntity` missing foreign key found by the
    `T-003a` review, owned by `data-engineer`. A correct fix is Room schema 2→3 with a hand-written,
-   row-preserving migration (AGENTS.md forbids `fallbackToDestructiveMigration()`); the cheap
-   interim — correct the KDoc that falsely claims a foreign key, and delete documents by `deckId`
-   in the deck-delete path — can land first and alone.
-2. **Alternatives:** `T-006` (real `MIGRATION_1_2` test) is blocked by three cross-lane changes
-   already recorded in `docs/ai-workforce/task-board.md` — start from that section, do not
-   re-derive it. `T-008` closes the test holes the review identified (production-path rollback
-   coverage, a deck-deletion cascade test, `SQLiteConstraintException` instead of
-   `catch (t: Throwable)`, and one overstated test name). `T-004` needs the user at the Firebase
-   console to set `gemini_api_key`.
-3. **No push has been made.** `main` is at `e106f30`, local only, working tree clean. Pushing needs
-   its own explicit authorization.
+   row-preserving migration (AGENTS.md forbids `fallbackToDestructiveMigration()`); the cheap interim
+   — correct the KDoc that falsely claims a foreign key, and delete documents by `deckId` in the
+   deck-delete path — can land first and alone.
+6. **Alternatives:** `T-006` (real `MIGRATION_1_2` test) is blocked by three cross-lane changes
+   already recorded in `docs/ai-workforce/task-board.md` — start from that section, do not re-derive
+   it. `T-008` closes the test holes the `T-003a` review identified (production-path rollback coverage,
+   a deck-deletion cascade test, `SQLiteConstraintException` instead of `catch (t: Throwable)`, and one
+   overstated test name).
+7. **No push has been made.** `main` is local-only — confirm its head with `git log --oneline -3`
+   rather than trusting a hash recorded here (D-012). Pushing needs its own explicit authorization.
 
 ## 13. Instructions for the Next Session
 

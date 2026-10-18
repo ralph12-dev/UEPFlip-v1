@@ -141,3 +141,114 @@ Append-only. Never reverse an established decision without recording why here. N
 - **Consequences:** the handoff record is committed, then immediately becomes stale about its own
   git state, so a further commit is always needed to describe the previous one. That is inherent to
   keeping the record inside the repo it describes; `logs/task-005.md` says so explicitly.
+
+### D-013 — The Gemini model id is Remote Config, not a hardcoded constant
+
+- **Decision:** `AiFlashcardGenerator` stops hardcoding one model. It exposes
+  `DEFAULT_MODEL = "gemini-flash-latest"`, `resolveModel()`, `isValidModelId()` and `endpointFor()`,
+  and `AiGeneratorProvider.create()` reads an optional Remote Config parameter `gemini_model` that
+  overrides the default. An absent, blank, or implausible value falls back to `DEFAULT_MODEL`. The
+  value is trimmed, a leading `models/` is stripped (the form the `ListModels` API prints), and it is
+  validated against `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$` before it is interpolated into the request
+  URL — so `/`, `:`, `@`, `?` and `#` cannot reach the path.
+- **Reason:** the hardcoded `gemini-2.0-flash` endpoint answered `404` for every AI call — Google
+  shut that model down on 2026-06-01. A retired model id is an *operational* event, not a code
+  defect, and it broke Create, Tutor and Hint at once because all three share `AiGeneratorProvider`.
+  Keeping the id in Remote Config makes the next retirement a console change, not an APK release.
+- **Alternatives rejected:** (a) pinning a different literal model id — works today, fails the same
+  way at the next retirement; (b) adopting the Firebase AI Logic SDK (`firebase-ai`) — a large change
+  to a pinned toolchain for a symptom that a string fixes, and the user explicitly chose to keep the
+  Remote Config key path; (c) a `local.properties`/`BuildConfig` debug key store — declined by the
+  user in the same exchange because it moves a secret into the build.
+- **Precedent:** this extends the existing rule that runtime configuration arrives through Remote
+  Config. The model id is configuration of exactly that kind, so it belongs beside `gemini_api_key`
+  rather than in code. The API key itself still never enters the APK.
+- **Consequences:** `README.md` documents `gemini_model`, the `404` symptom, and when a new value
+  applies: the next time an AI screen is opened (the generator is built once per screen-scoped
+  ViewModel, not per call), which can be mid-session. A junk console value degrades to the default
+  instead of producing a malformed URL or a request to another host, and a leading `models/` is
+  stripped so an id can be pasted straight from the `ListModels` response.
+- **Accepted trade-off, stated precisely:** `DEFAULT_MODEL` uses the `-latest` alias, which follows
+  Google's retirement schedule by design, so the underlying model can change under a shipped build.
+  That degradation is **safe but not self-explaining**: a model that renamed the `flashcards` field
+  would parse into an empty list and surface the generic "no cards" error rather than inventing cards,
+  and `extractJsonObject` captures text up to the *last* `}` so trailing prose containing a brace can
+  over-capture. No data loss and no fabricated content — but the user-facing message will not name the
+  cause, which is why `AiGeneratorProvider` logs the model actually in use, and warns when a configured
+  value was rejected. Pinning a verified-live concrete id as the default was the reviewer's preference;
+  the alias was kept for durability, with the override as the escape hatch.
+- **Status:** patch applied to `data/service/**` and `README.md`; **not compiled and not tested** —
+  the user invoked `DO NOT BUILD AND TEST`. Tracked as `T-009`, `IN_PROGRESS`, never promote it to
+  `DONE` without the compile and JVM runs.
+
+## D-014 — The short AI calls ask for `thinkingLevel: "low"`
+
+- **Context:** after `T-009` restored AI, the study screen's hint took several seconds. The request
+  body was `{"contents":[...]}` only: no `generationConfig`, therefore no thinking choice. Gemini 3.x
+  models think dynamically by default (`medium` on 3.6/3.8 Flash, `high` on 3 Flash) and
+  `generateContent` is non-streaming, so the app waited for thinking *and* the answer before showing
+  anything.
+- **Decision:** `AiFlashcardGenerator` accepts a `fastThinkingLevel` and sends
+  `generationConfig.thinkingConfig.thinkingLevel = "low"` for `generateHint`, `evaluateAnswer` and
+  `generateExplanation`. `generateFlashcards` keeps the model default, because card quality benefits
+  from reasoning and the user is already waiting on a bulk action.
+- **Reason:** the Gemini docs (`ai.google.dev/gemini-api/docs/generate-content/thinking`, updated
+  2026-10-14) describe `low` as "minimises latency and cost", which is exactly the trade a
+  one-sentence hint wants. That page is the Generate Content API one — the sibling Interactions API
+  page prints levels for 2.5 ids too, which does not apply here and must not be used to "fix" the
+  guard backwards. Grading and explanation share the shape (short output, user waiting), so they share
+  the setting rather than growing a per-call configuration API.
+- **Alternatives rejected:** (a) `minimal` — rejected by `gemini-3.7-flash` and `gemini-3.8-flash`,
+  and the model id is Remote-Configurable, so a console change could break hints; (b) a small
+  `maxOutputTokens` — the docs state it counts **thought tokens**, so it truncates to
+  `MAX_TOKENS`/empty output instead of saving time; (c) pinning a Flash-Lite model for hints — that
+  changes answer quality for every AI feature and needs a second model/key path; (d) making the level
+  a Remote Config knob — more moving parts than the problem, and it belongs to the code that knows
+  which calls are latency-sensitive.
+- **Compatibility guard:** Gemini 2.5 does not support `thinkingLevel` (it uses `thinkingBudget`), and
+  an unknown field is a request error. `AiGeneratorProvider.acceptsThinkingLevel()` emits the level
+  only for `gemini-3*`, `gemini-4*` and `*-latest`; every other id gets the previous, config-free
+  request byte for byte. Positive matching, so an unrecognised id fails safe.
+- **Consequences:** hints, grading and explanations should return in roughly the time the model needs
+  to write them, not think + write. Quality on hard comparisons may drop slightly; that is acceptable
+  for a nudge and is bounded by `low` rather than `minimal`. The remaining latency sources, in order,
+  are the per-screen `RemoteConfig.fetchAndActivate()` and the absence of streaming — both documented
+  in `handoff.md` §4.5 rather than fixed here.
+- **Status:** applied to `data/service/**` plus three wire tests in `AiFlashcardGeneratorTest`; **not
+  compiled and not tested** — the freeze still stands. Tracked as `T-012`, `IN_PROGRESS`.
+
+## D-015 — Hints are generated with the card and stored on it
+
+- **Context:** the hint was generated on tap. Even after D-014 lowered the thinking level, it was a
+  network round trip the student waits on for a one-sentence nudge — and the card already contains
+  everything needed to write that nudge. The user asked for it to exist before the tap.
+- **Decision:** the flashcard generation response includes a `hint` per card; the import and Tutor
+  paths persist it on `CardEntity.hint`. The study screen renders a stored hint with no spinner and
+  no network, and only calls `generateHint` when `hint` is null (pre-change cards, sample data),
+  saving the result afterwards.
+- **Reason:** one request instead of two, the hint is ready when the card is first studied, and the
+  stored value survives process death and offline use — the app is offline-first.
+- **Alternatives rejected:** (a) generating all hints in a second batched call after import — extra
+  latency, a second failure mode, and partial results to reconcile; (b) caching hints in memory only —
+  lost on process death; (c) a separate `hints` table — a 1:1 value with the card, so it belongs on
+  the row; (d) auto-showing the hint on card display — the user asked for "click to show", and
+  revealing a nudge unasked changes the study loop.
+- **Consequence — schema v3:** `hint` is nullable TEXT, `null` means "not generated yet" (never `""`),
+  with a hand-written `MIGRATION_2_3` and no destructive fallback. This is the riskiest part of the
+  change: a mismatch crashes on first DB open, so it needs a real v2→v3 upgrade run, not just a
+  fresh-install test.
+- **Consequence — write path:** `saveHint` uses a targeted UPDATE (`hint`, `updatedAt`) because a
+  read-modify-write of the whole entity could erase a review committed concurrently by
+  `processCardReview`. The save is best-effort: the hint is shown first, and a failed write is logged
+  because it only costs a regeneration.
+- **Safety:** a pre-generated hint has no second review pass, so `parseFlashcards` removes the hint
+  when it contains the answer verbatim (case-insensitive, answers ≥ 3 chars) and caps it at 240 chars
+  on a word boundary. `generateHint` applies the same rule to the lazy fallback, so that path cannot
+  store a leak either; an unusable fallback hint is reported as an error rather than shown. A bad hint
+  degrades to `null` and the card is never discarded. Paraphrased leaks are the prompt's responsibility
+  and are not detected — an accepted limit, stated so nobody assumes the guard is stronger than it is.
+  A non-string `hint` in the response (object/array/number) is treated as `null` rather than failing
+  the whole import, because one bad hint must not cost every card.
+- **Status:** applied to `data/service/**`, `data/local/**`, `data/repository/**`,
+  `ui/document/**`, `ui/study/**`, `ui/main/TutorViewModel.kt` plus tests; **not compiled and not
+  tested** — the freeze still stands. Tracked as `T-014`, `IN_PROGRESS`.
