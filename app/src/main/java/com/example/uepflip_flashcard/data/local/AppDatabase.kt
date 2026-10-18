@@ -22,7 +22,7 @@ import com.example.uepflip_flashcard.data.local.entities.ReviewEntity
         DocumentEntity::class,
         ReviewEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -71,6 +71,25 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds the nullable `cards.hint` column (a pre-generated study nudge).
+         *
+         * The column is nullable with no default, so every existing row reads back `NULL` — the
+         * intended "no hint generated yet" state. No table is rebuilt and no row is written or
+         * deleted, so existing decks, cards, scheduling state and review history are untouched.
+         * Room validates the result on open: it must be a nullable `TEXT` column named `hint`.
+         *
+         * Guarded like [MIGRATION_1_2]: a development build may already have created the column, and
+         * a bare `ALTER TABLE ... ADD COLUMN` would fail with "duplicate column name".
+         */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                if (!db.hasColumn("cards", "hint")) {
+                    db.execSQL("ALTER TABLE `cards` ADD COLUMN `hint` TEXT")
+                }
+            }
+        }
+
         private fun SupportSQLiteDatabase.hasColumn(table: String, column: String): Boolean {
             query("PRAGMA table_info(`$table`)").use { cursor ->
                 val nameIndex = cursor.getColumnIndex("name")
@@ -89,7 +108,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     DATABASE_NAME
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                 INSTANCE = instance
                 instance

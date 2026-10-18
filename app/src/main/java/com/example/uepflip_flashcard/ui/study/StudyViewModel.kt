@@ -1,6 +1,7 @@
 package com.example.uepflip_flashcard.ui.study
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.uepflip_flashcard.R
@@ -94,13 +95,23 @@ class StudyViewModel(
     }
 
     /**
-     * Asks the AI for a nudge on the current card. The hint is not persisted: it belongs to this
-     * viewing of the card and is cleared as soon as the session moves on.
+     * Shows a nudge for the current card. Cards imported with a hint already have it stored, so that
+     * one is shown immediately without a network call; a card without one asks the AI on demand and
+     * the generated hint is saved for next time. Either way the hint is cleared when the session
+     * advances.
      */
     fun requestHint() {
         val state = _uiState.value
         if (state.isHintLoading) return
         val card = state.currentCard ?: return
+
+        // The hint was pre-generated alongside the card, so this path is local-only: no spinner,
+        // no request.
+        val stored = card.hint?.trim().orEmpty()
+        if (stored.isNotEmpty()) {
+            _uiState.update { it.copy(hint = stored, isHintLoading = false) }
+            return
+        }
 
         _uiState.update { it.copy(isHintLoading = true) }
 
@@ -128,6 +139,15 @@ class StudyViewModel(
                 // Never show a hint for one question against a different card.
                 if (current.currentCard?.id != card.id) return@update current
                 current.copy(hint = hint, isHintLoading = false)
+            }
+            // Save after the UI update, so the student keeps the hint even if the write fails. A
+            // failure here only costs a second generation later; it must not interrupt studying.
+            try {
+                repository.saveHint(card.id, hint)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not store the generated hint for card ${card.id}", e)
             }
         }
     }
@@ -202,6 +222,8 @@ class StudyViewModel(
     }
 
     companion object {
+        private const val TAG = "StudyViewModel"
+
         fun factory(
             deckId: Long,
             repository: FlashcardRepository,

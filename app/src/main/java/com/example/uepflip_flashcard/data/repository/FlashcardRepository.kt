@@ -74,16 +74,38 @@ class FlashcardRepository(
         deckId: Long,
         question: String,
         answer: String,
-        category: String = ""
+        category: String = "",
+        hint: String? = null
     ): Long {
         return cardDao.insertCard(
             CardEntity(
                 deckId = deckId,
                 question = question.trim(),
                 answer = answer.trim(),
+                // A blank hint carries no information: store null ("not generated yet"), never "".
+                hint = hint?.trim()?.takeIf { it.isNotEmpty() },
                 category = category
             )
         )
+    }
+
+    /**
+     * Persists a hint generated lazily by the study screen for a card that had none.
+     *
+     * Only the `hint` and `updatedAt` columns are written, so a concurrent review's scheduling state
+     * and the review history can never be clobbered by this call. The reverse race is still possible
+     * and acceptable: a review that read the row *before* this write commits would write its stale
+     * copy back and the hint would be lost — it is regenerated on the next request. A blank hint is
+     * ignored: null means "not generated yet" and an empty string must never be stored in its place.
+     *
+     * The hint is a convenience, not study state. This is best-effort at the call site: a failure is
+     * deliberately allowed to propagate so the caller can log it, but it must not be treated as a
+     * reason to interrupt the study session.
+     */
+    suspend fun saveHint(cardId: Long, hint: String) {
+        val trimmed = hint.trim()
+        if (trimmed.isEmpty()) return
+        cardDao.updateHint(cardId, trimmed, System.currentTimeMillis())
     }
 
     suspend fun insertCards(cards: List<CardEntity>): List<Long> = cardDao.insertCards(cards)

@@ -371,6 +371,62 @@ class AppDatabaseTest {
         assertTrue("unrelated deck must have no documents", forOtherDeck.isEmpty())
     }
 
+    // --- 7. Per-card hint persistence (v3 cards.hint) -----------------------------------------
+
+    @Test
+    fun updateHint_roundTrips_andLeavesSchedulingStateUntouched() = runBlocking<Unit> {
+        val deckId = repository.createDeck("Hints")
+        // A card mid-schedule, as if a review had just moved it ten days into the future. The
+        // targeted UPDATE exists so a lazily generated hint cannot clobber this state.
+        val cardId = db.cardDao().insertCard(
+            CardEntity(
+                deckId = deckId,
+                question = "Q",
+                answer = "A",
+                category = "science",
+                repetitions = 3,
+                interval = 10,
+                easeFactor = 2.6f,
+                lastReviewedAt = T0,
+                nextReviewAt = T0 + 10 * DAY,
+                createdAt = T0,
+                updatedAt = T0,
+                rating = Sm2Scheduler.RATING_MEDIUM
+            )
+        )
+        val before = db.cardDao().getCardById(cardId)!!
+
+        // Explicit timestamp: "advanced" is deterministic instead of racing the wall clock.
+        db.cardDao().updateHint(cardId, "A nudge", T0 + DAY)
+
+        val after = db.cardDao().getCardById(cardId)!!
+        assertEquals("A nudge", after.hint)
+        assertTrue("updatedAt must advance", after.updatedAt > before.updatedAt)
+        assertEquals(T0 + DAY, after.updatedAt)
+
+        // Every scheduling field must survive the hint write byte-identically.
+        assertEquals(before.repetitions, after.repetitions)
+        assertEquals(before.interval, after.interval)
+        assertEquals(before.easeFactor.toDouble(), after.easeFactor.toDouble(), FLOAT_TOLERANCE)
+        assertEquals(before.lastReviewedAt, after.lastReviewedAt)
+        assertEquals(before.nextReviewAt, after.nextReviewAt)
+        assertEquals(before.rating, after.rating)
+        // Belt and braces: nothing outside `hint`/`updatedAt` may differ.
+        assertEquals(before.copy(hint = after.hint, updatedAt = after.updatedAt), after)
+    }
+
+    @Test
+    fun freshlyInsertedCard_hasNullHint_neverAnEmptyString() = runBlocking<Unit> {
+        val deckId = repository.createDeck("No hint yet")
+        val cardId = repository.insertCard(deckId, "Q", "A")
+
+        val card = db.cardDao().getCardById(cardId)!!
+
+        // Null is the "not generated yet" state the study screen branches on; "" would make
+        // requestHint() skip generation and show nothing.
+        assertNull("new cards must not carry a hint", card.hint)
+    }
+
     private companion object {
         /** Fixed wall-clock base: 2023-11-14T22:13:20Z. */
         const val T0 = 1_700_000_000_000L

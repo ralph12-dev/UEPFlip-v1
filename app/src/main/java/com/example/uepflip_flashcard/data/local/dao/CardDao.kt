@@ -20,6 +20,16 @@ interface CardDao {
     @Update
     suspend fun updateCard(card: CardEntity)
 
+    /**
+     * Stores a generated hint without touching any other column.
+     *
+     * A targeted UPDATE (rather than reading the row, copying in the hint and writing the whole
+     * entity back) avoids clobbering scheduling state that `processCardReview` may have written
+     * concurrently. [updatedAt] is passed in so the caller controls the timestamp.
+     */
+    @Query("UPDATE cards SET hint = :hint, updatedAt = :updatedAt WHERE id = :cardId")
+    suspend fun updateHint(cardId: Long, hint: String, updatedAt: Long = System.currentTimeMillis())
+
     @Delete
     suspend fun deleteCard(card: CardEntity)
 

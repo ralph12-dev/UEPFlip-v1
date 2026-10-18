@@ -15,7 +15,15 @@ import java.util.concurrent.TimeUnit
 /** A single flashcard produced by the AI. */
 data class GeneratedCard(
     val question: String,
-    val answer: String
+    val answer: String,
+    /**
+     * A nudge that points the student toward [answer] without stating or paraphrasing it.
+     *
+     * Nullable because older/cached response shapes and failed generations may omit it. The study
+     * screen then falls back to the on-demand [AiFlashcardGenerator.generateHint], which carries an
+     * explicit "do not reveal" prompt.
+     */
+    val hint: String? = null
 )
 
 /**
@@ -35,10 +43,28 @@ internal data class GeminiResponse(
     val promptFeedback: GeminiPromptFeedback? = null
 )
 
-internal data class GeminiRequest(val contents: List<GeminiContent>)
+internal data class GeminiThinkingConfig(val thinkingLevel: String? = null)
+internal data class GeminiGenerationConfig(val thinkingConfig: GeminiThinkingConfig? = null)
+internal data class GeminiRequest(
+    val contents: List<GeminiContent>,
+    val generationConfig: GeminiGenerationConfig? = null
+)
 
-/** Shape we ask the model to return inside its text part. */
-internal data class FlashcardResponse(val flashcards: List<GeneratedCard> = emptyList())
+/**
+ * Raw shape we ask the model to return inside its text part.
+ *
+ * [RawFlashcard.hint] is deliberately `Any?` rather than `String?`: Moshi's `String` adapter throws
+ * on a JSON object/array/number, and that exception would fail the whole import and lose every card
+ * in the response. With `Any?` an unusable hint simply becomes `null` in [GeneratedCard], which is
+ * the documented "bad hint costs the hint, never the card" contract.
+ */
+internal data class RawFlashcard(
+    val question: String? = null,
+    val answer: String? = null,
+    val hint: Any? = null
+)
+
+internal data class FlashcardResponse(val flashcards: List<RawFlashcard> = emptyList())
 
 /** Shape we ask the model to return when grading a student's recall. */
 internal data class EvaluationResponse(
@@ -69,17 +95,104 @@ data class AnswerEvaluation(
 class AiFlashcardGenerator(
     private val apiKey: String,
     private val endpoint: String = DEFAULT_ENDPOINT,
-    private val client: OkHttpClient = defaultClient()
+    private val client: OkHttpClient = defaultClient(),
+    /**
+     * Thinking level requested for the short, latency-sensitive calls (hint, grading, explanation).
+     *
+     * `null` means "send no `generationConfig` at all", which is what must happen for models that do
+     * not accept `thinkingLevel` — Gemini 2.x uses `thinkingBudget` and the API rejects the newer
+     * field. [AiGeneratorProvider] decides this from the resolved model id; the default keeps
+     * injected-endpoint tests and older models on the previous behaviour.
+     */
+    private val fastThinkingLevel: String? = null
 ) {
     companion object {
         private const val TAG = "AiFlashcardGenerator"
         private const val MAX_INPUT_CHARS = 30_000
 
+        /**
+         * Longest hint we keep. A hint is one or two sentences, so this only clips runaway output;
+         * trimming happens at a word boundary so it does not end mid-word.
+         */
+        private const val MAX_HINT_CHARS = 240
+
+        /**
+         * Shortest answer worth a verbatim leak-check. Very short answers such as `42` occur inside
+         * innocent hints, so checking them would discard good hints; a three-character answer like
+         * `ATP` is still checked.
+         */
+        private const val MIN_LEAK_CHECK_ANSWER_CHARS = 3
+
         /** Score at or above which an answer counts as correct. */
         private const val PASS_MARK = 60
 
-        const val DEFAULT_ENDPOINT =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+        /**
+         * Fastest thinking level that is valid across the Gemini 3.x Flash ids this app is likely to
+         * be pointed at. `minimal` is deliberately not used: `gemini-3.7-flash` and
+         * `gemini-3.8-flash` reject it with an error, and a Remote Config model change must not be
+         * able to break hints via this constant.
+         */
+        const val THINKING_LEVEL_LOW = "low"
+
+        private const val API_ROOT = "https://generativelanguage.googleapis.com/v1beta/models"
+
+        /**
+         * Prefix every id carries in the Gemini `ListModels` response (`models/gemini-…`). Accepted
+         * and stripped, because that is the exact string an operator will paste out of that response
+         * into Remote Config.
+         */
+        private const val MODELS_PREFIX = "models/"
+
+        /**
+         * Model used when Remote Config does not override it.
+         *
+         * This must be a model the Gemini API still serves. Google retires model ids on a
+         * schedule (**`gemini-2.0-flash` was shut down on 2026-06-01 and now answers `404`**),
+         * and a retired id breaks every AI feature at once. `AiGeneratorProvider` reads an
+         * optional `gemini_model` Remote Config override so a retirement can be worked around
+         * without shipping a new build; the version-agnostic `*-latest` alias is the default so the
+         * alias keeps resolving across retirements.
+         */
+        const val DEFAULT_MODEL = "gemini-flash-latest"
+
+        /**
+         * Matches the model-id characters the Gemini API accepts: letters, digits, `.`, `-`, `_`,
+         * beginning with a letter or digit.
+         *
+         * Must stay declared **before** [DEFAULT_ENDPOINT]: that property is initialised by calling
+         * [endpointFor], which reads this pattern. Reordering the two makes the companion initialiser
+         * dereference a null delegate — a failure the Kotlin compiler does not flag.
+         */
+        private val MODEL_PATTERN by lazy { Regex("^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$") }
+
+        /** Trims [model] and drops a leading `models/`; `null` and blank become `""`. */
+        private fun normalizeModel(model: String?): String =
+            model?.trim().orEmpty().removePrefix(MODELS_PREFIX)
+
+        /**
+         * True when [model] is usable **after normalisation** (trimmed, `models/` stripped). A raw
+         * `models/gemini-x` therefore validates, which is intended — callers must use [resolveModel]
+         * to get the id they actually send.
+         */
+        fun isValidModelId(model: String?): Boolean = MODEL_PATTERN.matches(normalizeModel(model))
+
+        /** [model] when valid, otherwise [DEFAULT_MODEL]. Never throws, never returns blank. */
+        fun resolveModel(model: String?): String {
+            val candidate = normalizeModel(model)
+            return if (MODEL_PATTERN.matches(candidate)) candidate else DEFAULT_MODEL
+        }
+
+        /**
+         * The `generateContent` endpoint for [model], or the [DEFAULT_MODEL] endpoint when [model]
+         * is blank or not a plausible model id.
+         *
+         * Validating here keeps a bad Remote Config value from producing a malformed URL or a
+         * request to another host: `/`, `:`, `@`, `?` and `#` cannot survive the pattern.
+         */
+        fun endpointFor(model: String?): String = "$API_ROOT/${resolveModel(model)}:generateContent"
+
+        /** Endpoint for [DEFAULT_MODEL]. Prefer [endpointFor] so the model stays configurable. */
+        val DEFAULT_ENDPOINT: String = endpointFor(DEFAULT_MODEL)
 
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
@@ -114,8 +227,12 @@ class AiFlashcardGenerator(
 
     /**
      * Asks for a single nudge about [question] without revealing [answer]. Used by the study
-     * screen's "Request hint"; the hint is whatever the model wrote, so nothing is fabricated
-     * locally.
+     * screen's "Request hint" when the card has no stored hint; the hint is whatever the model
+     * wrote, so nothing is fabricated locally.
+     *
+     * The result goes through the same [sanitizeHint] rule as import-time hints: a hint that repeats
+     * the answer is not something we are willing to show, even on request. In that case the call
+     * fails, which the study screen reports — a missing hint is better than a leaked answer.
      */
     suspend fun generateHint(question: String, answer: String): String {
         if (question.isBlank()) {
@@ -131,9 +248,9 @@ class AiFlashcardGenerator(
             Write one or two short sentences that point the student toward the right idea without
             giving the answer away. Reply with plain text only.
         """.trimIndent()
-        return requestModelText(prompt).trim().ifBlank {
-            throw AiGenerationException("The AI returned an empty hint. Please try again.")
-        }
+        val raw = requestModelText(prompt, thinkingLevel = fastThinkingLevel)
+        return sanitizeHint(raw, answer)
+            ?: throw AiGenerationException("The AI returned an unusable hint. Please try again.")
     }
 
     /**
@@ -164,7 +281,7 @@ class AiFlashcardGenerator(
             "score" is 0-100 and must agree with "correct" (below $PASS_MARK is incorrect).
         """.trimIndent()
 
-        val parsed = parseEvaluation(requestModelText(prompt))
+        val parsed = parseEvaluation(requestModelText(prompt, thinkingLevel = fastThinkingLevel))
         val note = parsed.note?.trim().orEmpty()
         val modelScore = parsed.score
         // A missing score means the model never actually graded the answer. Fail the call rather
@@ -201,20 +318,30 @@ class AiFlashcardGenerator(
             part the student missed, and give one thing to remember next time. Reply with plain text
             only.
         """.trimIndent()
-        return requestModelText(prompt).trim().ifBlank {
+        return requestModelText(prompt, thinkingLevel = fastThinkingLevel).trim().ifBlank {
             throw AiGenerationException("The AI returned an empty explanation. Please try again.")
         }
     }
 
-    /** Performs the HTTPS call and returns the model's raw text part. */
-    private suspend fun requestModelText(prompt: String): String = withContext(Dispatchers.IO) {
+    /**
+     * Performs the HTTPS call and returns the model's raw text part.
+     *
+     * [thinkingLevel] is sent only when non-null. Hint, grading and explanation pass the generator's
+     * [fastThinkingLevel] because their answers are a sentence or two and the user is waiting; on
+     * Gemini 3.x the default thinking level makes them take seconds, which is the latency this
+     * parameter exists to remove. Flashcard generation deliberately keeps the model default.
+     */
+    private suspend fun requestModelText(
+        prompt: String,
+        thinkingLevel: String? = null
+    ): String = withContext(Dispatchers.IO) {
         if (apiKey.isBlank()) {
             throw AiGenerationException("AI features are not set up yet. Please try again later.")
         }
 
         val request = Request.Builder()
             .url("$endpoint?key=$apiKey")
-            .post(buildRequestBody(prompt).toRequestBody(JSON_MEDIA_TYPE))
+            .post(buildRequestBody(prompt, thinkingLevel).toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
         val responseBody = try {
@@ -237,9 +364,14 @@ class AiFlashcardGenerator(
         extractCandidateText(responseBody)
     }
 
-    private fun buildRequestBody(prompt: String): String {
+    private fun buildRequestBody(prompt: String, thinkingLevel: String? = null): String {
+        // Moshi omits null properties, so a null thinkingLevel keeps the wire format exactly as it
+        // was before this parameter existed (and keeps models that reject `thinkingLevel` working).
         val request = GeminiRequest(
-            contents = listOf(GeminiContent(parts = listOf(GeminiPart(prompt))))
+            contents = listOf(GeminiContent(parts = listOf(GeminiPart(prompt)))),
+            generationConfig = thinkingLevel?.let { level ->
+                GeminiGenerationConfig(thinkingConfig = GeminiThinkingConfig(thinkingLevel = level))
+            }
         )
         // Serialising with Moshi guarantees the prompt is correctly JSON-escaped.
         return moshi.adapter(GeminiRequest::class.java).toJson(request)
@@ -280,7 +412,46 @@ class AiFlashcardGenerator(
         }
 
         return parsed?.flashcards.orEmpty()
+            .map { raw ->
+                GeneratedCard(
+                    question = raw.question.orEmpty(),
+                    answer = raw.answer.orEmpty(),
+                    // A non-string hint (object/array/number) is unusable, not fatal.
+                    hint = raw.hint as? String
+                )
+            }
             .filter { it.question.isNotBlank() && it.answer.isNotBlank() }
+            .map { card -> card.copy(hint = sanitizeHint(card.hint, card.answer)) }
+    }
+
+    /**
+     * Normalises a model-written [hint], or returns `null` when it is unusable.
+     *
+     * Used both for the cards generated at import time and for the on-demand [generateHint] fallback.
+     * Neither has a second review pass, so a leak degrades to "no hint" rather than showing the
+     * answer. For imports that means the stored hint is null and the study screen falls back to
+     * [generateHint]; for the fallback itself an unusable hint is reported as a failure, because a
+     * missing hint is better than a leaked answer.
+     */
+    private fun sanitizeHint(hint: String?, answer: String): String? {
+        val trimmed = hint?.trim().orEmpty()
+        if (trimmed.isBlank()) return null
+
+        val capped = if (trimmed.length <= MAX_HINT_CHARS) {
+            trimmed
+        } else {
+            // Cut at the last space before the cap so the text does not end mid-word.
+            val lastSpace = trimmed.lastIndexOf(' ', MAX_HINT_CHARS)
+            (if (lastSpace > 0) trimmed.substring(0, lastSpace) else trimmed.substring(0, MAX_HINT_CHARS))
+                .trim()
+        }
+        if (capped.isBlank()) return null
+
+        val reference = answer.trim()
+        // A verbatim answer is a leak regardless of casing; paraphrases are the prompt's job.
+        val leaks = reference.length >= MIN_LEAK_CHECK_ANSWER_CHARS &&
+            capped.contains(reference, ignoreCase = true)
+        return if (leaks) null else capped
     }
 
     private fun parseEvaluation(modelText: String): EvaluationResponse {
@@ -323,9 +494,12 @@ class AiFlashcardGenerator(
             $text
 
             Respond with ONLY a JSON object in exactly this shape, with no extra commentary:
-            {"flashcards":[{"question":"...","answer":"..."}]}
+            {"flashcards":[{"question":"...","answer":"...","hint":"..."}]}
 
             Create between 5 and 10 flashcards. Each question must be self-contained.
+            Each card's "hint" is one or two short plain-text sentences that point the student toward
+            the answer without stating or paraphrasing it. The hint is shown only after the student
+            asks for it, so it must not give the answer away.
         """.trimIndent()
     }
 }

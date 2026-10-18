@@ -23,6 +23,15 @@ data class CardEntity(
     val deckId: Long,
     val question: String,
     val answer: String,
+    /**
+     * A pre-generated nudge shown on the study screen before the answer is revealed.
+     *
+     * Generated alongside the question and answer at import time, so showing it needs no network
+     * call. It is null for cards created before this column existed (and for the debug sample data),
+     * which is the real "no hint generated yet" state — never an empty string. A null hint makes the
+     * study screen generate and persist one lazily. Must never reveal or paraphrase the answer.
+     */
+    val hint: String? = null,
     val category: String = "",
     val repetitions: Int = 0,
     val interval: Int = 0,

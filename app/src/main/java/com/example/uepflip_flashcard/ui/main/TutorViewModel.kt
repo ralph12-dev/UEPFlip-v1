@@ -152,7 +152,10 @@ class TutorViewModel(
                             CardEntity(
                                 deckId = deckId,
                                 question = card.question.trim(),
-                                answer = card.answer.trim()
+                                answer = card.answer.trim(),
+                                // Generated in the same call, so store it and let the study screen
+                                // show it instantly instead of asking the AI again.
+                                hint = card.hint
                             )
                         }
                     )

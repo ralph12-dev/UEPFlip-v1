@@ -172,7 +172,11 @@ class DocumentImportViewModel(private val application: Application) : ViewModel(
                     CardEntity(
                         deckId = deckId,
                         question = card.question.trim(),
-                        answer = card.answer.trim()
+                        answer = card.answer.trim(),
+                        // The hint arrives in the same model response as the card, so persisting it
+                        // lets the study screen show it without a second network call. A null hint
+                        // stays null and the study screen generates one lazily.
+                        hint = card.hint
                     )
                 }
             )
