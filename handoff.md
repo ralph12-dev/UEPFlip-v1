@@ -228,9 +228,14 @@ Found by the `T-003a` review, tracked as `T-007`, not yet fixed. Everything else
 ## 10. Git and Workspace State
 
 - **Current branch:** `main`
-- **Last known commit:** `e106f30` — 2026-10-19 — `test: add Room persistence instrumented tests (T-003a)`;
-  parent `11b7058` — `chore: add AI engineering workforce and durable handoff record`.
-  Both authored this session with explicit user authorization (`T-005`), stacked on `4bc2c48`.
+- **Last known commit:** **do not trust a pinned hash in this section** — describing a commit
+  changes the file that describes it, so this section always lags by one commit (decision D-012).
+  Verify with `git log --oneline -3`. The two substantive commits are:
+  - `e106f30` — `test: add Room persistence instrumented tests (T-003a)`
+  - `11b7058` — `chore: add AI engineering workforce and durable handoff record`
+
+  Everything after them is `docs: record …` commits updating this record. The pre-workforce
+  baseline is `4bc2c48`.
 - **Uncommitted changes:** **none** — the working tree is clean, nothing staged. The entire
   workforce and the `T-003a` tests are committed, so `git checkout` / `git reset --hard` now
   recover everything. No push was made (`git push` still needs its own authorization).
@@ -268,6 +273,7 @@ Found by the `T-003a` review, tracked as `T-007`, not yet fixed. Everything else
 | `git add AGENTS.md .opencode docs handoff.md` → `git commit` (T-005) | **PASS** | `11b7058 chore: add AI engineering workforce and durable handoff record` — 17 files, 2090 insertions. Staged set checked against `git diff --cached --stat` first: no `local.properties`, no scratch build logs | 2026-10-19 01:42 |
 | `git add app/src/androidTest` → `git commit` (T-005) | **PASS** | `e106f30 test: add Room persistence instrumented tests (T-003a)` — 1 file, 380 insertions. Kept separate from the config commit so either can be reverted alone | 2026-10-19 01:42 |
 | `git status --short` after committing | **PASS** | clean — nothing staged, nothing untracked. Nothing pushed | 2026-10-19 01:42 |
+| `git commit` (record refresh) | **PASS** | `3f4c741 docs: record T-005 — workforce and T-003a tests committed` — 5 files, 126 insertions | 2026-10-19 01:44 |
 
 Compile, unit tests, and APK assembly are distinct from runtime verification: nothing here proves
 the app behaves correctly on a device.
