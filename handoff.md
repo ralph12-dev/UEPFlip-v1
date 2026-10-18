@@ -246,16 +246,18 @@ claim against the repository before acting on it.
 ## 5. Active Work
 
 **Four tasks are in flight and all are unverified: `T-009`** (§4.4) — the retired-model patch, now
-functionally confirmed live but still never compiled in this session — **`T-010`**, the untracked
+functionally confirmed live but still never compiled in this session — **`T-010`**, the
 model-resolution test, **`T-012`** (§4.5), the thinking-level patch plus its tests, **and `T-014`**
-(§4.6), the pre-generated hint (generator + schema **v3** + three UI paths + tests). Promote any of
-them only after `.\gradlew.bat :app:compileDebugKotlin` and `.\gradlew.bat testDebugUnitTest` are
-green, and give the `T-014` migration a real upgrade run on a device. The user's standing
-`DO NOT BUILD AND TEST` must be lifted first; do not run Gradle behind it.
+(§4.6), the pre-generated hint (generator + schema **v3** + three UI paths + tests). **All four were
+committed and pushed on 2026-10-19 with the user's explicit authorization, and pushing compiles
+nothing** — every Gradle row for them is still `NOT_RUN`. Promote any of them only after
+`.\gradlew.bat :app:compileDebugKotlin` and `.\gradlew.bat testDebugUnitTest` are green, and give the
+`T-014` migration a real upgrade run on a device. The user's standing `DO NOT BUILD AND TEST` must be
+lifted first; do not run Gradle behind it.
 
 **`T-005` is `DONE`:** with explicit user authorization the workforce and the tests were committed as
-`11b7058` and `e106f30`. Nothing has been pushed, so the working tree still holds the only copy of
-`T-009`.
+`11b7058` and `e106f30`. The later AI work is pushed as well (§10), so the remote now holds a copy of
+everything.
 
 **Next task (not started):** `T-007` — the `DocumentEntity` missing foreign key found by the
 `T-003a` review, owned by `data-engineer`. See §6 for the alternatives (`T-004`, `T-006`, `T-008`).
@@ -406,27 +408,21 @@ as a bug.
 
   Everything after them is `docs: record …` commits updating this record. The pre-workforce
   baseline is `4bc2c48`.
-- **Uncommitted changes:** **the `T-009` + `T-012` patches and their record are uncommitted — 9 tracked
-  files, modified, plus 1 untracked test file.** Verify with `git status --short` / `git diff --stat`
-  rather than trusting an enumeration here (an enumeration is what went stale last time):
-  `AGENTS.md`, `README.md`, `handoff.md`, `data/service/AiFlashcardGenerator.kt`,
-  `data/service/AiGeneratorProvider.kt`, `app/src/test/.../AiFlashcardGeneratorTest.kt` (the `T-012`
-  wire tests), and `docs/ai-workforce/{decisions,task-board,test-results}.md`; untracked:
-  `app/src/test/java/.../data/service/AiModelResolutionTest.kt` (`T-010`, never compiled).
-  The Kotlin files are the ones that matter: the untracked-and-unrecoverable risk the protocol exists
-  to prevent now applies to them, because `git reset --hard` / `git checkout HEAD -- <path>` discard
-  *modified* content and `git clean -fd` deletes the *untracked* test. Commit or stash before any
-  history-rewriting or cleaning command; commit only with explicit authorization. No push was made.
-- **Files currently being modified:** the files above, one logical change (`T-009` + `T-010` + `T-012`
-  plus their record). This file is edited only to record state.
+- **Uncommitted changes:** **none.** The working tree is clean and `main` is level with
+  `origin/main` (verify with `git status -sb`). The AI work was committed in two steps — code + tests,
+  then the record — and **pushed to GitHub** (`ralph12-dev/UEPflip`) with explicit user authorization
+  ("commit to github"). Verify the exact heads with `git log --oneline -4` rather than trusting a hash
+  here (D-012).
+- **The commit is unbuilt.** Pushing does not compile anything: every Gradle row in §11 is still
+  `NOT_RUN`, and the `T-014` migration has never run against a v2 database. The first build after the
+  freeze lifts is the real gate; `T-015` tracks the missing upgrade test.
+- **Files currently being modified:** none. This file is edited only to record state.
 - **Unresolved merge conflicts:** none. No stashes (`git stash list` is empty).
 - **Backup/recovery notes:**
-  - Everything is tracked, so `git checkout HEAD -- <path>` and `git reset --hard` recover **committed**
-    work. The unrecoverable-untracked risk recorded earlier in this document is **resolved** by
-    `T-005`.
-  - **That protection does not cover the current tree.** The uncommitted `T-009` change is *modified*
-    content, so `git checkout HEAD -- <path>` or `git reset --hard` destroys it outright — it is not a
-    recovery command for work in progress. Commit or stash first.
+  - Everything is tracked and pushed, so `git checkout HEAD -- <path>` and `git reset --hard` recover
+    **committed** work. The unrecoverable-untracked risk recorded earlier in this document is
+    **resolved** by `T-005`, and `AiModelResolutionTest.kt` is now committed as well.
+  - A clean tree is not evidence of correctness: the last build predates all of the AI work.
   - `T-005` produced two commits rather than one on purpose: the workforce config
     (`11b7058`) and the tests (`e106f30`) are separate logical changes, so either can be reverted
     without touching the other.
@@ -479,7 +475,7 @@ work. The user invoked `DO NOT BUILD AND TEST`.
 | web search: `gemini-2.0-flash` shutdown status | PASS (diagnostic) | Google shut the model down **2026-06-01**; `generativelanguage.googleapis.com` now answers `404` for it. External evidence, not repo verification. | 2026-10-19 |
 | user-reported device error `error 404` | OBSERVED (by user) | Not reproduced here. Only reachable after a completed Gemini round trip, so it also proves Remote Config now serves the key. | 2026-10-19 |
 | `code-reviewer` review of the `T-009` diff | **APPROVE WITH NITS** | session `ses_eafb9783dffe7vIY7q6Sb4xTuN`. No BLOCKER, no HIGH. **Inspection-only** — it could not run Gradle either, so it did not verify compilation; it verified companion-init order, the `const val`→`val` change, the parenthesised `try`, that `app/src/test/**` still compiles, and that no existing test could have caught the `404`. MEDIUM findings fixed in the tree; remainder → §12. | 2026-10-19 |
-| `git status --short` / `git diff --stat` after the fix | OK | **8 files modified, 0 staged**: `AGENTS.md`, `README.md`, `handoff.md`, the two `data/service` Kotlin files, and `docs/ai-workforce/{decisions,task-board,test-results}.md`; plus **1 untracked** file, the `T-010` test. The Kotlin files are **uncommitted and unbuilt**. | 2026-10-19 |
+| `git status --short` / `git diff --stat` after the fix | OK | At that point **8 files modified, 0 staged**: `AGENTS.md`, `README.md`, `handoff.md`, the two `data/service` Kotlin files, and `docs/ai-workforce/{decisions,task-board,test-results}.md`; plus **1 untracked** file, the `T-010` test. **Superseded:** all of it was committed and pushed on 2026-10-19 — see §10. The Kotlin is **built by nobody**. | 2026-10-19 |
 | `T-010` — new `AiModelResolutionTest.kt` authored by `qa-engineer` | **INSPECTED, NOT RUN** | session `ses_eafb53eebffeYDDlUwTpJlMhgm`, no Gradle invoked (freeze). 20 `@Test` methods; orchestrator read the file in full and hand-checked its expected values against the production source, and `code-reviewer` re-read it in a second pass (compile-safe by inspection, no assertion would fail today). **Never compiled** — not coverage. | 2026-10-19 |
 | `code-reviewer` second pass on the fixes + `T-010` | **APPROVE WITH NITS** | session `ses_eafb29925ffewZ517GkywsyHfr`. No BLOCKER/HIGH/MEDIUM. Inspection-only (it could not run `git diff` either). Confirmed: the three resolver functions agree structurally, the provider can no longer log a value it is not using, the tighter pattern breaks no previously-accepted id, and no assertion in the new test would fail today. Its LOW/NIT items are fixed in the tree. | 2026-10-19 |
 
@@ -526,18 +522,19 @@ screen, so a fresh install is not enough — it needs an upgrade from a v2 datab
 
 ## 12. Next Actions
 
-1. **Highest-priority action:** get `T-009` + `T-012` compiled. Both patches are complete and
-   reviewed by inspection, but **nothing has compiled either**. Two cheap steps settle most of it:
+1. **Highest-priority action (when the freeze lifts):** get the pushed AI work compiled. Four patches
+   are complete and reviewed by inspection, but **nothing has compiled any of them**. `T-009`, `T-010`,
+   `T-012` and `T-014` all land in this one build:
    - `.\gradlew.bat :app:compileDebugKotlin` then `.\gradlew.bat testDebugUnitTest` — **both are
      suppressed by the user's standing `DO NOT BUILD AND TEST`; get that lifted first.** The run must
-     cover `AiModelResolutionTest` (`T-010`) and the three new `AiFlashcardGeneratorTest` cases
-     (`T-012`).
+     cover `AiModelResolutionTest` (`T-010`), the three `T-012` cases and the seven `T-014` hint cases
+     in `AiFlashcardGeneratorTest`, and the pre-existing suites.
    - `curl "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY"` — outside the app,
      proves which models the key can actually serve. If `gemini-flash-latest` is not listed, set the
      Remote Config parameter `gemini_model` to one that is (a leading `models/` is stripped, so the id
      can be pasted straight from that response); no code change needed. New values apply the next time
      an AI screen is opened.
-   - **After installing the `T-012` build:** request a hint twice on one card set and compare. If it is
+   - **After installing the new build:** request a hint twice on one card set and compare. If it is
      still slow, the next suspects in order are the per-screen `RemoteConfig.fetchAndActivate()` in
      `AiGeneratorProvider.create()` and the absence of streaming — not the thinking level.
 2. **Review follow-ups from the `T-009` review** (`code-reviewer`, session
@@ -553,8 +550,10 @@ screen, so a fresh install is not enough — it needs an upgrade from a v2 datab
      relevant, because the model can now change without a release.
    - **`ai-engineer`, low (`T-011`):** `"$endpoint?key=$apiKey"` interpolates the key unencoded.
      Pre-existing; the new `.trim()` covers the realistic case, but encoding closes `&`/`#`.
-3. **Then commit** — `T-009` and `T-012` touch `data/service/**` and have never been built. Commit
-   needs explicit authorization (AGENTS.md). Until then, one `git reset --hard` loses them.
+3. **Committed and pushed — done.** `T-009`, `T-010`, `T-012` and `T-014` went up in two commits
+   (code + tests, then the record) with the user's explicit "commit to github" authorization. **This is
+   not a verification step:** the commit is unbuilt, and the record says so. Do not promote a task to
+   `DONE` on the strength of the push.
 4. **Then close `T-004`** — the user confirmed live generation works after installing the `T-009`
    build, which is the missing evidence. Record one Create, one Tutor grading and one Hint run on a
    device before marking it `DONE`; the Gradle rows here are still `NOT_RUN`.
@@ -568,8 +567,10 @@ screen, so a fresh install is not enough — it needs an upgrade from a v2 datab
    it. `T-008` closes the test holes the `T-003a` review identified (production-path rollback coverage,
    a deck-deletion cascade test, `SQLiteConstraintException` instead of `catch (t: Throwable)`, and one
    overstated test name).
-7. **No push has been made.** `main` is local-only — confirm its head with `git log --oneline -3`
-   rather than trusting a hash recorded here (D-012). Pushing needs its own explicit authorization.
+7. **`main` is pushed and level with `origin/main`.** The push was authorized explicitly by the user
+   on 2026-10-19 (`4bc2c48..4653eb2 main -> main`, repo `ralph12-dev/UEPflip`). Verify the head with
+   `git log --oneline -4` rather than trusting a hash recorded here (D-012). A further push needs its
+   own authorization; nothing is staged.
 
 ## 13. Instructions for the Next Session
 
