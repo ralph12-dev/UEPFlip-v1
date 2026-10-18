@@ -1,0 +1,44 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // The engineering lead is the entry point for this project. It plans, assigns file
+  // ownership, and delegates to the specialists in .opencode/agents/.
+  // If it fails to load, OpenCode falls back to `build`.
+  "default_agent": "orchestrator",
+
+  // The execution record is loaded into every session alongside AGENTS.md, so
+  // maintaining it does not depend on the model remembering to read it (D-008).
+  // Keep both files concise: handoff.md holds current state, task-board.md holds
+  // ownership and dependencies, and docs/ai-workforce/ holds the long history.
+  "instructions": ["handoff.md", "docs/ai-workforce/task-board.md"],
+
+  // Project-wide guardrails. These apply to every agent first; each agent's own
+  // `permissions` in .opencode/agents/*.md are appended afterwards and refine them
+  // (last matching rule wins).
+  //   - git write operations: ask (orchestrator) or deny (specialists)
+  //   - destructive operations: deny for everyone
+  //   - signing/release: deny for everyone, since there is no signing config here
+  "permissions": [
+    { "action": "shell", "resource": "git push --force*", "effect": "deny" },
+    { "action": "shell", "resource": "git push -f*", "effect": "deny" },
+    { "action": "shell", "resource": "git reset --hard*", "effect": "deny" },
+    { "action": "shell", "resource": "git clean -fd*", "effect": "deny" },
+    { "action": "shell", "resource": "git checkout --*", "effect": "deny" },
+    { "action": "shell", "resource": "*assembleRelease*", "effect": "deny" },
+    { "action": "shell", "resource": "*bundleRelease*", "effect": "deny" },
+    { "action": "shell", "resource": "*gradlew* signingReport*", "effect": "deny" },
+    { "action": "shell", "resource": "rm -rf *", "effect": "deny" },
+    { "action": "shell", "resource": "git commit*", "effect": "ask" },
+    { "action": "shell", "resource": "git push*", "effect": "ask" },
+
+    // Secrets and local machine state stay unreadable. local.properties is gitignored
+    // (sdk.dir only) and never part of a change. google-services.json remains readable:
+    // it is committed and required by the google-services plugin, and holds no API key.
+    { "action": "read", "resource": "**/local.properties", "effect": "deny" },
+    { "action": "read", "resource": "local.properties", "effect": "deny" },
+    { "action": "read", "resource": "**/*.jks", "effect": "deny" },
+    { "action": "read", "resource": "**/*.keystore", "effect": "deny" },
+    { "action": "read", "resource": "**/.env", "effect": "deny" },
+    { "action": "read", "resource": "**/.env.*", "effect": "deny" }
+  ]
+}
