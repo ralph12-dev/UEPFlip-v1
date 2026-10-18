@@ -94,3 +94,25 @@ independently read and tallied both report-XML sets instead, matching the number
 **Unverified by anything above:** the migration path (still `T-006`), Flow re-emission over time
 (the tests use `first()` snapshots), concurrent writers, and real-file (non-in-memory) database
 behaviour.
+
+### 2026-10-19 01:42 (+08:00) · T-005 · committing the workforce (user-authorized)
+
+AGENTS.md forbids committing without authorization; it was granted explicitly in-session and is
+recorded in `logs/task-005.md`.
+
+| Command | Result | Output / notes |
+|---|---|---|
+| `git log --oneline -12` | OK | checked existing style first: `docs:`, `fix:`, `test:`, `feature:` |
+| `git add AGENTS.md .opencode docs handoff.md` + `git diff --cached --stat` | **PASS** | 17 files, 2090 insertions, inspected **before** committing — no `local.properties`, no scratch build logs |
+| `git commit` (config) | **PASS** | `11b7058 chore: add AI engineering workforce and durable handoff record`, exit 0 |
+| `git add app/src/androidTest` + `git commit` (tests) | **PASS** | `e106f30 test: add Room persistence instrumented tests (T-003a)`, 1 file / 380 insertions, exit 0 |
+| `git status --short` | **PASS** | **clean** — nothing staged, nothing untracked |
+| `git log --oneline -3` | PASS | `e106f30`, `11b7058`, `4bc2c48` |
+
+Two commits on purpose, so the tests and the workforce config can be reverted independently
+(decision D-012). Line-ending warnings (`LF will be replaced by CRLF`) appeared for every file —
+benign autocrlf notices on a repo with no `.gitattributes`, not content changes.
+
+**Not done:** no `git push`. `main` is local-only; pushing needs its own authorization, and
+`git push` / `git reset --hard` / force-push are separately guarded in
+`.opencode/opencode.jsonc`.

@@ -24,7 +24,7 @@ history. Do not turn `handoff.md` or this file into an activity log.
 | T-002 | Handoff protocol + task-state split | orchestrator | T-001 | `handoff.md`, `docs/ai-workforce/**`, `AGENTS.md`, `.opencode/**` | DONE |
 | T-003a | In-memory Room persistence tests on a device | qa-engineer | T-002 | `app/src/androidTest/**` | DONE |
 | T-004 | Configure `gemini_api_key` and verify the live AI flow | ai-engineer | T-002 | `data/service/**`, `ui/document/**` | NOT_STARTED |
-| T-005 | Commit the workforce, docs, and handoff files | orchestrator | T-002 | tracked by Git | NOT_STARTED |
+| T-005 | Commit the workforce, docs, handoff files and the `T-003a` tests | orchestrator | T-002 | tracked by Git | DONE |
 | T-006 | Real `MIGRATION_1_2` test via `MigrationTestHelper` | data-engineer + orchestrator + qa-engineer | T-003a | see blockers below | NOT_STARTED |
 | T-007 | `DocumentEntity` missing FK → documents orphaned on deck delete | data-engineer | T-003a | `data/local/**` | NOT_STARTED |
 | T-008 | Test follow-ups raised by the `T-003a` review (production-path rollback, deck-cascade test, `SQLiteConstraintException`, test naming) | qa-engineer | T-003a | `app/src/androidTest/**` | NOT_STARTED |
@@ -63,4 +63,5 @@ decision, so it needs a `decisions.md` entry before implementation begins.
 - `logs/task-001.md` — workforce bootstrap (done).
 - `logs/task-002.md` — handoff protocol and task-state split (done).
 - `logs/task-003.md` — `T-003a` Room persistence tests (DONE).
+- `logs/task-005.md` — commit the workforce and tests (DONE).
 - New logs: `logs/task-NNN.md` matching a board row.

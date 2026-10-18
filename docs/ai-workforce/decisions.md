@@ -125,3 +125,19 @@ Append-only. Never reverse an established decision without recording why here. N
 - **Consequences:** the cheap interim steps — correcting the KDoc that falsely claims a foreign
   key, and deleting documents by `deckId` in the deck-delete path — are part of `T-007` and may be
   done before the schema change.
+
+### D-012 — Commit the workforce as two commits, and record the authorization
+
+- **Decision:** `T-005` produced `11b7058` (workforce config, docs, handoff record) and `e106f30`
+  (the `T-003a` tests) as **separate** commits, and the user's authorization to commit is recorded
+  in `logs/task-005.md` rather than left implicit.
+- **Reason:** they are independent changes with different blast radii — reverting the tests should
+  not remove the engineering team, and vice versa. The authorization is recorded because AGENTS.md
+  forbids committing without it; a future session auditing `git log` should be able to see that the
+  rule was followed, not guess.
+- **Alternatives rejected:** one combined commit (convenient, but couples unrelated reverts);
+  amending the record refresh into the test commit (rewrites history for no benefit, and hides the
+  fact that the record lags the work by one commit by design).
+- **Consequences:** the handoff record is committed, then immediately becomes stale about its own
+  git state, so a further commit is always needed to describe the previous one. That is inherent to
+  keeping the record inside the repo it describes; `logs/task-005.md` says so explicitly.

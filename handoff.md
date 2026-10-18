@@ -21,11 +21,10 @@ claim against the repository before acting on it.
 ## 2. Current Status
 
 - **Overall status:** `IN_PROGRESS`
-- **Last updated:** 2026-10-19 01:17 (+08:00) — immediately after `T-003a` verification and review.
-- **Current phase:** workforce complete **and first real delegation complete**. `T-001`, `T-002`
-  and `T-003a` are `DONE`. No task in flight. The team has now been exercised end-to-end on real
-  work: orchestrator → `qa-engineer` → `code-reviewer` → orchestrator, with the lane boundary
-  verified (`git status app/src/main` empty) at the end.
+- **Last updated:** 2026-10-19 01:43 (+08:00) — immediately after `T-005` (both commits landed).
+- **Current phase:** the workforce is complete **and committed**. `T-001`, `T-002`, `T-003a` and
+  `T-005` are `DONE`. Nothing is in flight. `main` is at `e106f30`, the tree is clean, and no push
+  has been made.
 - **Last verified build:** `.\gradlew.bat assembleDebug` → `BUILD SUCCESSFUL in 9s` (2026-10-19)
 - **Last verified tests:** `.\gradlew.bat testDebugUnitTest` → PASS at 00:45 on 2026-10-19
   (30/30 up-to-date, exit 0, JVM suite). `.\gradlew.bat connectedDebugAndroidTest` → PASS at 00:57
@@ -105,10 +104,13 @@ claim against the repository before acting on it.
 ## 5. Active Work
 
 **None in flight.** `T-003a` is `DONE` — completed, independently re-verified, and reviewed
-(§4.4, `docs/ai-workforce/logs/task-003.md`). The record of how it was delegated is kept below
-for continuity; the tasks that follow are `T-005` (commit the untracked workforce — needs user
-authorization) and the review follow-ups `T-006` / `T-007` / `T-008`, all in
-`docs/ai-workforce/task-board.md`.
+(§4.4, `docs/ai-workforce/logs/task-003.md`). `T-005` is also `DONE`: with explicit user
+authorization the workforce and the tests were committed as `11b7058` and `e106f30`, and the
+working tree is clean, so the "untracked and unrecoverable" risk recorded earlier is resolved.
+Nothing has been pushed.
+
+**Next task (not started):** `T-007` — the `DocumentEntity` missing foreign key found by the
+`T-003a` review, owned by `data-engineer`. See §6 for the alternatives (`T-004`, `T-006`, `T-008`).
 
 ### How `T-003a` was delegated (completed record)
 
@@ -150,7 +152,7 @@ authorization) and the review follow-ups `T-006` / `T-007` / `T-008`, all in
 | T-002 | Handoff protocol + task-state split | — | high | DONE |
 | T-003a | In-memory Room persistence tests on a device (`app/src/androidTest/**`) | T-002 | high | DONE |
 | T-004 | Configure `gemini_api_key` in Firebase Remote Config and verify the live AI flow end to end | T-002 | medium | NOT_STARTED |
-| T-005 | Commit `.opencode/`, `docs/`, `handoff.md`, `AGENTS.md` (requires explicit authorization) | T-002 | low | NOT_STARTED |
+| T-005 | Commit `.opencode/`, `docs/`, `handoff.md`, `AGENTS.md` (+ the `T-003a` tests) — user-authorized | T-002 | low | DONE |
 | T-006 | Real `MIGRATION_1_2` test — blocked by `MIGRATION_1_2` being private, `exportSchema = false`, and missing `androidTestImplementation(room-testing)`; spans `data-engineer` + orchestrator + qa-engineer | T-003a | medium | NOT_STARTED |
 | T-007 | `DocumentEntity` declares an index on `deckId` but **no foreign key** (its KDoc falsely claims one), so deleting a deck orphans its documents including imported PDFs' full `extractedText` — silent storage leak. Found by the `T-003a` review. Fix = FK + CASCADE = Room schema 2→3 with a row-preserving migration, or the cheap interim: correct the KDoc and delete documents by `deckId` in the deck-delete path | T-003a | medium | NOT_STARTED |
 | T-008 | Test follow-ups from the `T-003a` review: the repository's own `withTransaction` in `processCardReview` is still untested (the rollback test hand-rolls its own), no deck-deletion cascade test, `catch (t: Throwable)` should be `SQLiteConstraintException`, and one test name overstates what it asserts | T-003a | low | NOT_STARTED |
@@ -226,15 +228,21 @@ Found by the `T-003a` review, tracked as `T-007`, not yet fixed. Everything else
 ## 10. Git and Workspace State
 
 - **Current branch:** `main`
-- **Last known commit:** `4bc2c48` — 2026-10-15 — `docs: add comprehensive README with setup, architecture, and testing guide`
-- **Uncommitted changes:** `M AGENTS.md`; untracked `.opencode/`, `docs/`, `handoff.md`.
-  Nothing staged, nothing committed.
-- **Files currently being modified:** none in flight; the `T-002` set is written and verified.
+- **Last known commit:** `e106f30` — 2026-10-19 — `test: add Room persistence instrumented tests (T-003a)`;
+  parent `11b7058` — `chore: add AI engineering workforce and durable handoff record`.
+  Both authored this session with explicit user authorization (`T-005`), stacked on `4bc2c48`.
+- **Uncommitted changes:** **none** — the working tree is clean, nothing staged. The entire
+  workforce and the `T-003a` tests are committed, so `git checkout` / `git reset --hard` now
+  recover everything. No push was made (`git push` still needs its own authorization).
+- **Files currently being modified:** none. This file is edited only to record state.
 - **Unresolved merge conflicts:** none. No stashes (`git stash list` is empty).
 - **Backup/recovery notes:**
-  - `AGENTS.md` is tracked, so `git checkout HEAD -- AGENTS.md` restores the pre-workforce version.
-  - `.opencode/`, `docs/`, and `handoff.md` are **untracked** — `git checkout` cannot recover them.
-    Commit them (`T-005`) or copy them out before any risky operation.
+  - Everything is tracked, so `git checkout HEAD -- <path>` and `git reset --hard` recover all of
+    it. The unrecoverable-untracked risk recorded earlier in this document is **resolved** by
+    `T-005`.
+  - `T-005` produced two commits rather than one on purpose: the workforce config
+    (`11b7058`) and the tests (`e106f30`) are separate logical changes, so either can be reverted
+    without touching the other.
   - Never assume the workspace is clean: check `git status` before editing.
 
 ## 11. Verification Record
@@ -257,25 +265,28 @@ Found by the `T-003a` review, tracked as `T-007`, not yet fixed. Everything else
 | tally of `app/build/test-results/testDebugUnitTest/*.xml` | **PASS** | **57 tests / 7 suites / 0 failures / 0 errors / 0 skipped** — AiFlashcardGenerator 17, SampleDataSeeder 9, DeckStats 9, Sm2Scheduler 9, DeckNaming 8, ReviewApplication 4, Example 1 | 2026-10-19 01:16 |
 | `git status --short app/src/main` (lane boundary) | **PASS** | **empty** — `qa-engineer` wrote nothing outside `app/src/androidTest/**` | 2026-10-19 01:16 |
 | `code-reviewer` review of the `T-003a` diff | **APPROVE WITH CONCERNS** | independently tallied both report-XML sets; no tautologies; determinism clean. Concern: the rollback test hand-rolls its own `withTransaction`, so the repository's transaction remains untested. Surfaces a real production defect → `T-007` | 2026-10-19 01:17 |
+| `git add AGENTS.md .opencode docs handoff.md` → `git commit` (T-005) | **PASS** | `11b7058 chore: add AI engineering workforce and durable handoff record` — 17 files, 2090 insertions. Staged set checked against `git diff --cached --stat` first: no `local.properties`, no scratch build logs | 2026-10-19 01:42 |
+| `git add app/src/androidTest` → `git commit` (T-005) | **PASS** | `e106f30 test: add Room persistence instrumented tests (T-003a)` — 1 file, 380 insertions. Kept separate from the config commit so either can be reverted alone | 2026-10-19 01:42 |
+| `git status --short` after committing | **PASS** | clean — nothing staged, nothing untracked. Nothing pushed | 2026-10-19 01:42 |
 
 Compile, unit tests, and APK assembly are distinct from runtime verification: nothing here proves
 the app behaves correctly on a device.
 
 ## 12. Next Actions
 
-1. **Immediate action:** `T-005` — commit `.opencode/`, `docs/`, `handoff.md` and `AGENTS.md`
-   (pre-existing from `T-001`/`T-002`, plus the record updates from `T-003a`). This needs **explicit
-   user authorization**. Until then the whole workforce is **untracked in Git** and unrecoverable
-   by `git checkout`.
-2. **Follow-ups:** route `T-007` to `data-engineer` (documents missing FK — cascade to orphans on
-   deck delete; fix via schema 2→3 with a row-preserving migration per AGENTS.md; cheap interim:
-   correct the KDoc and delete documents by `deckId` in the deck-delete path). `T-006` (real
-   migration test for `MIGRATION_1_2`) remains blocked (three blockers recorded). `T-008` covers
-   the test holes from the review (production-path rollback, deck-cascade test,
-   `SQLiteConstraintException`, test naming).
-3. **While committing:** the only untracked addition from `T-003a` is
-   `app/src/androidTest/java/com/example/uepflip_flashcard/data/AppDatabaseTest.kt`; it was green
-   on device and the lane boundary was held (`git status app/src/main` empty).
+1. **Highest-priority action:** `T-007` — the `DocumentEntity` missing foreign key found by the
+   `T-003a` review, owned by `data-engineer`. A correct fix is Room schema 2→3 with a hand-written,
+   row-preserving migration (AGENTS.md forbids `fallbackToDestructiveMigration()`); the cheap
+   interim — correct the KDoc that falsely claims a foreign key, and delete documents by `deckId`
+   in the deck-delete path — can land first and alone.
+2. **Alternatives:** `T-006` (real `MIGRATION_1_2` test) is blocked by three cross-lane changes
+   already recorded in `docs/ai-workforce/task-board.md` — start from that section, do not
+   re-derive it. `T-008` closes the test holes the review identified (production-path rollback
+   coverage, a deck-deletion cascade test, `SQLiteConstraintException` instead of
+   `catch (t: Throwable)`, and one overstated test name). `T-004` needs the user at the Firebase
+   console to set `gemini_api_key`.
+3. **No push has been made.** `main` is at `e106f30`, local only, working tree clean. Pushing needs
+   its own explicit authorization.
 
 ## 13. Instructions for the Next Session
 
