@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.uepflip_flashcard.data.model.Deck
 import com.example.uepflip_flashcard.data.repository.FlashcardRepository
 import com.example.uepflip_flashcard.domain.DeckStats
+import com.example.uepflip_flashcard.domain.StudyActivity
 import com.example.uepflip_flashcard.ui.SimpleViewModelFactory
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,19 +20,25 @@ data class DashboardState(
     val dueCardCount: Int = 0,
     val dueDeckCount: Int = 0,
     val firstDueDeckId: Long? = null,
+    /** Consecutive days with at least one review, ending today (or yesterday). */
+    val streakDays: Int = 0,
+    /** Share of reviews not rated Hard; null until there is review history. */
+    val recallRatePercent: Int? = null,
     val loadFailed: Boolean = false
 )
 
 /**
- * Read-only projection of persisted decks/cards for the Home and My Decks screens. Deck counts and
- * mastery are computed from real card scheduling state (see [DeckStats]).
+ * Read-only projection of persisted decks/cards/reviews for the Home and My Decks screens. Deck counts and
+ * mastery are computed from real card scheduling state (see [DeckStats]); streak and accuracy come from the
+ * stored review history.
  */
 class DashboardViewModel(private val repository: FlashcardRepository) : ViewModel() {
 
     val state: StateFlow<DashboardState> = combine(
         repository.getAllDecks(),
-        repository.getAllCards()
-    ) { decks, cards ->
+        repository.getAllCards(),
+        repository.getAllReviews()
+    ) { decks, cards, reviews ->
         val byDeck = cards.groupBy { it.deckId }
         val uiDecks = decks.map { deck ->
             DeckStats.toUiDeck(deck.id, deck.title, byDeck[deck.id].orEmpty())
@@ -43,7 +50,9 @@ class DashboardViewModel(private val repository: FlashcardRepository) : ViewMode
             decks = uiDecks,
             dueCardCount = dueCards.size,
             dueDeckCount = dueDeckIds.size,
-            firstDueDeckId = uiDecks.firstOrNull { it.id in dueDeckIds }?.id
+            firstDueDeckId = uiDecks.firstOrNull { it.id in dueDeckIds }?.id,
+            streakDays = StudyActivity.streakDays(reviews),
+            recallRatePercent = DeckStats.recallRatePercent(reviews)
         )
     }.catch {
         // A Room failure must not strand the screen in its loading visual (or crash the app);

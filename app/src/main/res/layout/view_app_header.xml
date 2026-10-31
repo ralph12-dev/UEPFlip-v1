@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  App header: UEPFLIP logo on the left, mascot profile circle on the right.
+  Design only, not connected to anything. Uses your existing @style/UF.Logo, @string/app_brand
+  and @drawable/ic_mascot. Drop it in with <include layout="@layout/view_app_header" />.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <TextView
+        style="@style/UF.Logo"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="@string/app_brand" />
+
+    <!-- Profile circle: 40dp, white fill, pink ring, soft shadow -->
+    <ImageView
+        android:id="@+id/btn_profile"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/me_bg_avatar_button"
+        android:contentDescription="@string/me_cd_profile"
+        android:elevation="3dp"
+        android:padding="5dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_mascot" />
+</LinearLayout>

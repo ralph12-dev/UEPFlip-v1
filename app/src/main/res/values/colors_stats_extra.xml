@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- bg_bar_default.xml uses @color/chart_bar but no values file defines it (this made :app:processDebugResources fail).
+     If the build ever reports "Duplicate resources" for chart_bar, delete this file. -->
+<resources>
+    <color name="chart_bar">#B8A288</color>
+</resources>

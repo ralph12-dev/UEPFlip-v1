@@ -1,6 +1,5 @@
 package com.example.uepflip_flashcard.ui.main
 
-import android.content.Context
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -10,7 +9,6 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayoutMediator
@@ -55,25 +53,13 @@ class OnboardingFragment : Fragment(R.layout.activity_onboarding) {
             if (pager.currentItem < pages.lastIndex) {
                 pager.currentItem += 1
             } else {
-                markOnboardingComplete()
-                Toast.makeText(context, R.string.onboarding_welcome_toast, Toast.LENGTH_SHORT).show()
-                main.goHome()
+                main.push(SetupFeaturesFragment())
             }
         }
 
         skip.setOnClickListener {
-            markOnboardingComplete()
-            main.goHome()
+            main.push(SetupFeaturesFragment())
         }
-    }
-
-    /** Records that onboarding has been shown so it does not replay on every cold start. */
-    private fun markOnboardingComplete() {
-        requireContext()
-            .getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putBoolean(MainActivity.KEY_ONBOARDING_COMPLETE, true)
-            .apply()
     }
 
     class SimplePagerAdapter(private val pages: List<Page>) :

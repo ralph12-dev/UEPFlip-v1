@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Statistics screen UI -->
+    <string name="stats_date_range_hint">Select date range</string>
+    <string name="stats_card_avg_score">Avg Score</string>
+    <string name="stats_card_passed">Passed Cards</string>
+    <string name="stats_card_unfinished">Unfinished</string>
+    <string name="stats_card_reviews_done">Reviews Done</string>
+    <string name="stats_vs_previous">Vs previous period</string>
+    <string name="stats_accuracy_title">Accuracy Over Time</string>
+    <string name="stats_accuracy_chart_desc">Line chart of accuracy over the week</string>
+    <string name="stats_distribution_title">Answers Distribution</string>
+    <string name="stats_distribution_chart_desc">Donut chart of answers by result</string>
+    <string name="stats_answer_correct">correct</string>
+    <string name="stats_answer_incorrect">incorrect</string>
+    <string name="stats_answer_skipped">skipped</string>
+    <string name="stats_answer_unanswered">unanswered</string>
+    <string name="stats_axis_100" formatted="false">100%</string>
+    <string name="stats_axis_75" formatted="false">75%</string>
+    <string name="stats_axis_50" formatted="false">50%</string>
+    <string name="stats_day_mon">M</string>
+    <string name="stats_day_tue">T</string>
+    <string name="stats_day_wed">W</string>
+    <string name="stats_day_thu">Th</string>
+    <string name="stats_day_fri">F</string>
+    <string name="stats_day_sat">S</string>
+    <string name="stats_day_sun">S</string>
+</resources>

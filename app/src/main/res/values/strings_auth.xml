@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="auth_logo">UEPFLIP</string>
+    <string name="auth_mascot_desc">UEPFlip mascot peeking over the card</string>
+
+    <!-- Login -->
+    <string name="login_title">Sign in to your Account</string>
+    <string name="login_subtitle">Enter your email and\npassword to log in</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_email_hint">you@example.com</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_password_hint">Enter your password</string>
+    <string name="auth_or">Or</string>
+    <string name="login_google">Continue with Google</string>
+    <string name="login_guest">Continue as Guest</string>
+    <string name="login_no_account">Don\'t have an account?</string>
+    <string name="login_sign_up">Sign Up</string>
+
+    <!-- Register -->
+    <string name="register_title">Get Started now</string>
+    <string name="register_subtitle">Create an account or log in to explore\nabout our app</string>
+    <string name="register_first_name">First Name</string>
+    <string name="register_last_name">Last Name</string>
+    <string name="register_birth_date">Birth date</string>
+    <string name="register_birth_date_hint">DD/MM/YYYY</string>
+    <string name="register_confirm_password">Confirm Password</string>
+    <string name="register_confirm_password_hint">Re-enter your password</string>
+    <string name="register_button">Register</string>
+    <string name="auth_icon_desc_toggle_password">Show or hide password</string>
+    <string name="auth_icon_desc_calendar">Pick a date</string>
+</resources>

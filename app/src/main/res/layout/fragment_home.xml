@@ -3,17 +3,39 @@
     android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/bg">
     <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
-            <TextView style="@style/UF.Logo" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="@string/app_brand"/>
+            <include layout="@layout/view_app_header"/>
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_marginTop="18dp" android:gravity="center_vertical" android:orientation="vertical">
                 <TextView android:id="@+id/greeting" style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
                 <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="@string/home_subtitle"/>
             </LinearLayout>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:baselineAligned="false" android:orientation="horizontal">
+                <com.google.android.material.card.MaterialCardView style="@style/UF.Card" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginEnd="8dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal" android:orientation="vertical" android:paddingVertical="14dp" android:paddingHorizontal="8dp">
+                        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_flame" android:contentDescription="@null"/>
+                        <TextView android:id="@+id/home_streak" style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textSize="20sp"/>
+                        <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/home_stat_streak" android:textSize="12sp"/>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.card.MaterialCardView style="@style/UF.Card" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginEnd="8dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal" android:orientation="vertical" android:paddingVertical="14dp" android:paddingHorizontal="8dp">
+                        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_bell" android:contentDescription="@null"/>
+                        <TextView android:id="@+id/home_due" style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textSize="20sp"/>
+                        <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/home_stat_due" android:textSize="12sp"/>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.card.MaterialCardView style="@style/UF.Card" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal" android:orientation="vertical" android:paddingVertical="14dp" android:paddingHorizontal="8dp">
+                        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_target" android:contentDescription="@null"/>
+                        <TextView android:id="@+id/home_accuracy" style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textSize="20sp"/>
+                        <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/home_stat_accuracy" android:textSize="12sp"/>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
             <com.google.android.material.card.MaterialCardView android:id="@+id/card_progress" style="@style/UF.Card"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="18dp" android:layout_marginBottom="12dp"
+                android:layout_marginTop="12dp" android:layout_marginBottom="12dp"
                 android:clickable="true" android:focusable="true"
                 android:foreground="?attr/selectableItemBackground">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -38,7 +60,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="10dp" android:gravity="center_vertical">
-                <TextView style="@style/UF.H2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/home_recent_decks"/>
+                <TextView style="@style/UF.H2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/home_my_decks"/>
                 <TextView android:id="@+id/btn_view_all" style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="48dp" android:minWidth="48dp" android:paddingHorizontal="8dp" android:gravity="center_vertical|end" android:clickable="true" android:focusable="true" android:text="@string/home_view_all"/>
             </LinearLayout>
             <androidx.recyclerview.widget.RecyclerView android:id="@+id/recent_decks" android:layout_width="match_parent" android:layout_height="wrap_content" android:nestedScrollingEnabled="false"/>

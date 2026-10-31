@@ -42,6 +42,8 @@ class DecksFragment : Fragment(R.layout.fragment_decks), NavDestination {
     override fun onViewCreated(v: View, savedInstanceState: Bundle?) {
         val main = requireActivity() as MainActivity
 
+        v.findViewById<View>(R.id.btn_profile).setOnClickListener { main.goProfile() }
+
         search = v.findViewById(R.id.search)
         chips = v.findViewById(R.id.filters)
         emptyView = v.findViewById(R.id.decks_empty)

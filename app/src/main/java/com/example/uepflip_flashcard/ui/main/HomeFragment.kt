@@ -38,16 +38,14 @@ class HomeFragment : Fragment(R.layout.fragment_home), NavDestination {
                 Toast.makeText(requireContext(), R.string.no_cards_due, Toast.LENGTH_SHORT).show()
             }
         }
+        v.findViewById<View>(R.id.btn_profile).setOnClickListener { main.goProfile() }
         v.findViewById<View>(R.id.btn_view_all).setOnClickListener { main.goDecks() }
         v.findViewById<View>(R.id.btn_create).setOnClickListener { main.goCreate() }
         v.findViewById<View>(R.id.card_progress).setOnClickListener { main.goStats() }
 
         val list = v.findViewById<RecyclerView>(R.id.recent_decks)
         list.layoutManager = LinearLayoutManager(requireContext())
-        val adapter = DeckAdapter(
-            showStudy = false,
-            onStudy = { deck -> main.goStudy(deck.id) }
-        )
+        val adapter = StatsDeckAdapter { deck -> main.goStudy(deck.id) }
         list.adapter = adapter
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -57,8 +55,19 @@ class HomeFragment : Fragment(R.layout.fragment_home), NavDestination {
         }
     }
 
-    private fun render(v: View, state: DashboardState, adapter: DeckAdapter) {
+    private fun render(v: View, state: DashboardState, adapter: StatsDeckAdapter) {
         adapter.submitList(state.decks.take(3))
+
+        // Real Room data; a dash (not a misleading 0) while the first emission is in flight or when there
+        // is no review history to compute accuracy from.
+        val dash = getString(R.string.stat_no_data)
+        v.findViewById<TextView>(R.id.home_streak).text =
+            if (state.isLoading) dash else state.streakDays.toString()
+        v.findViewById<TextView>(R.id.home_due).text =
+            if (state.isLoading) dash else state.dueCardCount.toString()
+        v.findViewById<TextView>(R.id.home_accuracy).text =
+            state.recallRatePercent?.takeUnless { state.isLoading }
+                ?.let { getString(R.string.stat_percent, it) } ?: dash
 
         val hasDue = state.dueCardCount > 0
         v.findViewById<View>(R.id.btn_review).visibility = if (hasDue) View.VISIBLE else View.GONE

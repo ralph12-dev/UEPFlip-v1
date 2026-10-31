@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_title">About</string>
+    <string name="about_app_name">UEPflip</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_developer">Developer: Team Fantastic 4 3F</string>
+    <string name="about_app_heading">About the App</string>
+    <string name="about_app_body">UEPflip is a mobile-based flashcard application designed specifically for UEP students. It is a smart study tool that transforms how students prepare for exams and retain course material. Unlike generic flashcard apps, UEPflip integrates an AI-powered chatbot tutor, intelligent spaced repetition scheduling, and a mascot companion to make studying faster, easier, and engaging.</string>
+    <string name="about_team_heading">Our Team</string>
+    <string name="about_role_programmer">PROGRAMMER</string>
+    <string name="about_role_designer">UI DESIGNER</string>
+    <string name="about_role_researcher">RESEARCHER</string>
+    <string name="about_names_programmer">CJ TABADA\nRALPH JERIC SERNA</string>
+    <string name="about_names_designer">KATE PASAG</string>
+    <string name="about_names_researcher">EARL JAMES\nCAOAGAS</string>
+    <string name="about_copyright">© 2026 UEPflip. All rights reserved.</string>
+</resources>

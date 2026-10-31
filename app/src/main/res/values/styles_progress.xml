@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Flat, thin, fully rounded progress bar (shadcn/ui "Progress" look): solid fill on a soft track,
+     no stop dot, no gap between fill and track. Use with style="@style/UF.Progress". -->
+<resources>
+    <style name="UF.Progress" parent="Widget.Material3.LinearProgressIndicator">
+        <item name="trackThickness">6dp</item>
+        <item name="trackCornerRadius">3dp</item>
+        <item name="trackColor">@color/track</item>
+        <item name="indicatorColor">@color/ink</item>
+        <item name="trackStopIndicatorSize">0dp</item>
+        <item name="indicatorTrackGapSize">0dp</item>
+    </style>
+</resources>

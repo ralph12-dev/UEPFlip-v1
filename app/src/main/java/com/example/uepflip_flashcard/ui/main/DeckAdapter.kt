@@ -48,7 +48,7 @@ class DeckAdapter(
         } else {
             h.review.visibility = View.GONE
         }
-        h.progress.progress = d.mastery
+        h.progress.setProgressCompat(d.mastery, true)
         h.pct.text = h.itemView.context.getString(R.string.stat_percent, d.mastery)
 
         h.study.visibility = if (showStudy) View.VISIBLE else View.GONE

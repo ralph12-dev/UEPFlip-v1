@@ -1,62 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/bg">
+
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
-        <TextView style="@style/UF.Logo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/app_brand"/>
-        <TextView style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="@string/stats_title"/>
 
-        <com.google.android.material.card.MaterialCardView style="@style/UF.Card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="14dp">
-                <TextView style="@style/UF.H2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/stats_progress_title"/>
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="horizontal">
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:id="@+id/stat_decks" style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-                        <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/stats_label_decks"/>
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:id="@+id/stat_cards" style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-                        <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/stats_label_cards"/>
-                    </LinearLayout>
+        <include layout="@layout/view_app_header"/>
+
+        <TextView style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="18dp"
+            android:textSize="28sp" android:text="@string/stats_title"/>
+
+        <!-- Shown only when there is no history (or loading failed) -->
+        <TextView android:id="@+id/stat_empty" style="@style/UF.Muted" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:visibility="gone" android:text="@string/stats_empty"/>
+
+        <!-- Accuracy this week -->
+        <com.google.android.material.card.MaterialCardView style="@style/UF.Card" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" android:layout_marginBottom="12dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
+                <TextView style="@style/UF.H2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/stats_accuracy_week"/>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="110dp" android:layout_marginTop="16dp" android:orientation="horizontal">
+                    <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+                        <View android:id="@+id/bar_0" android:layout_width="match_parent" android:layout_height="4dp" android:layout_gravity="bottom"
+                            android:layout_marginHorizontal="4dp" android:background="@drawable/bg_bar_empty"/>
+                    </FrameLayout>
+                    <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+                        <View android:id="@+id/bar_1" android:layout_width="match_parent" android:layout_height="4dp" android:layout_gravity="bottom"
+                            android:layout_marginHorizontal="4dp" android:background="@drawable/bg_bar_empty"/>
+                    </FrameLayout>
+                    <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+                        <View android:id="@+id/bar_2" android:layout_width="match_parent" android:layout_height="4dp" android:layout_gravity="bottom"
+                            android:layout_marginHorizontal="4dp" android:background="@drawable/bg_bar_empty"/>
+                    </FrameLayout>
+                    <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+                        <View android:id="@+id/bar_3" android:layout_width="match_parent" android:layout_height="4dp" android:layout_gravity="bottom"
+                            android:layout_marginHorizontal="4dp" android:background="@drawable/bg_bar_empty"/>
+                    </FrameLayout>
+                    <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+                        <View android:id="@+id/bar_4" android:layout_width="match_parent" android:layout_height="4dp" android:layout_gravity="bottom"
+                            android:layout_marginHorizontal="4dp" android:background="@drawable/bg_bar_empty"/>
+                    </FrameLayout>
+                    <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+                        <View android:id="@+id/bar_5" android:layout_width="match_parent" android:layout_height="4dp" android:layout_gravity="bottom"
+                            android:layout_marginHorizontal="4dp" android:background="@drawable/bg_bar_empty"/>
+                    </FrameLayout>
+                    <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+                        <View android:id="@+id/bar_6" android:layout_width="match_parent" android:layout_height="4dp" android:layout_gravity="bottom"
+                            android:layout_marginHorizontal="4dp" android:background="@drawable/bg_bar_empty"/>
+                    </FrameLayout>
                 </LinearLayout>
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="horizontal">
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:id="@+id/stat_due" style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-                        <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/stats_label_due"/>
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:id="@+id/stat_mastered" style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-                        <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/stats_label_mastered"/>
-                    </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:orientation="horizontal">
+                    <TextView style="@style/UF.Muted" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:textSize="11sp" android:text="@string/stats_day_mon"/>
+                    <TextView style="@style/UF.Muted" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:textSize="11sp" android:text="@string/stats_day_tue"/>
+                    <TextView style="@style/UF.Muted" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:textSize="11sp" android:text="@string/stats_day_wed"/>
+                    <TextView style="@style/UF.Muted" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:textSize="11sp" android:text="@string/stats_day_thu"/>
+                    <TextView style="@style/UF.Muted" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:textSize="11sp" android:text="@string/stats_day_fri"/>
+                    <TextView style="@style/UF.Muted" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:textSize="11sp" android:text="@string/stats_day_sat"/>
+                    <TextView style="@style/UF.Muted" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:textSize="11sp" android:text="@string/stats_day_sun"/>
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.card.MaterialCardView style="@style/UF.Card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="14dp">
-                <TextView style="@style/UF.H2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/stats_history_title"/>
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="horizontal">
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:id="@+id/stat_reviews" style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-                        <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/stats_label_total_reviews"/>
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:id="@+id/stat_reviews_week" style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-                        <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/stats_label_last_7_days"/>
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:id="@+id/stat_recall" style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-                        <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/stats_label_recall"/>
-                    </LinearLayout>
+        <!-- Three summary tiles -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+            <com.google.android.material.card.MaterialCardView style="@style/UF.Card" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:layout_marginStart="0dp" android:layout_marginEnd="6dp" android:layout_marginBottom="0dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal" android:orientation="vertical" android:padding="14dp">
+                    <TextView android:id="@+id/stat_recall" style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="22sp" android:text="@string/stat_no_data" tools:text="84%"/>
+                    <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textSize="12sp" android:text="@string/stats_tile_accuracy"/>
                 </LinearLayout>
-                <TextView android:id="@+id/stat_empty" style="@style/UF.Muted" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:visibility="gone" android:text="@string/stats_empty"/>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView style="@style/UF.Card" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:layout_marginStart="6dp" android:layout_marginEnd="6dp" android:layout_marginBottom="0dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal" android:orientation="vertical" android:padding="14dp">
+                    <TextView android:id="@+id/stat_reviews_week" style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="22sp" android:text="@string/stat_no_data" tools:text="84%"/>
+                    <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textSize="12sp" android:text="@string/stats_tile_cards_week"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView style="@style/UF.Card" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:layout_marginStart="6dp" android:layout_marginEnd="0dp" android:layout_marginBottom="0dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal" android:orientation="vertical" android:padding="14dp">
+                    <TextView android:id="@+id/stat_streak" style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="22sp" android:text="@string/stat_no_data" tools:text="84%"/>
+                    <TextView style="@style/UF.Muted" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textSize="12sp" android:text="@string/stats_tile_streak"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
 
-        <com.google.android.material.card.MaterialCardView style="@style/UF.Card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="14dp">
-                <TextView style="@style/UF.H2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/stats_sr_title"/>
-                <TextView style="@style/UF.Muted" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="@string/stats_sr_body"/>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        <TextView style="@style/UF.H2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="24dp"
+            android:layout_marginBottom="12dp" android:text="@string/stats_progress_by_deck"/>
+
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/stats_decks" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:nestedScrollingEnabled="false" tools:itemCount="2" tools:listitem="@layout/item_stats_deck"/>
     </LinearLayout>
 </ScrollView>

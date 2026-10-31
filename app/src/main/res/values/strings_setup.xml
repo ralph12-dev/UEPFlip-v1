@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="setup_continue">Continue</string>
+    <string name="setup_skip">Skip setup</string>
+    <string name="setup_features_title">Everything you need</string>
+    <string name="setup_feature_pdf_title">PDF to flashcards</string>
+    <string name="setup_feature_pdf_body">Drop a file, get a deck.</string>
+    <string name="setup_feature_review_title">Smart review</string>
+    <string name="setup_feature_review_body">Cards come back right before you forget.</string>
+    <string name="setup_feature_tutor_title">AI tutor</string>
+    <string name="setup_feature_tutor_body">Ask questions and get evaluated.</string>
+    <string name="setup_goal_title">Set a study goal</string>
+    <string name="setup_goal_subtitle">We\'ll remind you until you hit it. You can change this any time.</string>
+    <string name="setup_goal_casual">Casual</string>
+    <string name="setup_goal_regular">Regular</string>
+    <string name="setup_goal_intense">Intense</string>
+    <string name="setup_goal_casual_body">10 cards a day</string>
+    <string name="setup_goal_regular_body">25 cards a day</string>
+    <string name="setup_goal_intense_body">50 cards a day</string>
+    <string name="setup_notifications_title">Stay on track</string>
+    <string name="setup_notifications_subtitle">Pick what we should notify you about. Quiet hours are on by default.</string>
+    <string name="setup_notif_daily">Daily study reminder</string>
+    <string name="setup_notif_streak">Streak alerts</string>
+    <string name="setup_notif_suggestions">New deck suggestions</string>
+    <string name="setup_start_studying">Start studying</string>
+</resources>

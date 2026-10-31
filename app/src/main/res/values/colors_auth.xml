@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Auth screens (Login / Register). Design only. Prefixed auth_ so nothing existing is touched. -->
+<resources>
+    <color name="auth_page">#FFFFFF</color>
+    <color name="auth_sheet">#F8F3E6</color>
+    <color name="auth_brand">#AC7F5E</color>
+    <color name="auth_label">#B08968</color>
+    <color name="auth_hint">#C3A388</color>
+    <color name="auth_icon">#BBA58F</color>
+    <color name="auth_line">#D9C3AB</color>
+    <color name="auth_field">#FFFFFF</color>
+    <color name="auth_field_text">#2A2520</color>
+    <color name="auth_button">#B8A288</color>
+    <color name="auth_logo">#000000</color>
+</resources>

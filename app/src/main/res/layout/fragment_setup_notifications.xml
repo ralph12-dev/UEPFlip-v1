@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/bg"
+    android:orientation="vertical" android:paddingHorizontal="20dp" android:paddingTop="16dp" android:paddingBottom="16dp">
+
+    <com.google.android.material.progressindicator.LinearProgressIndicator android:id="@+id/setup_progress"
+        android:layout_width="match_parent" android:layout_height="wrap_content" android:progress="100"
+        app:trackThickness="4dp" app:trackCornerRadius="2dp" app:indicatorColor="@color/ink" app:trackColor="@color/track"/>
+
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:fillViewport="true" android:scrollbars="none">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center_horizontal" android:orientation="vertical">
+            <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"/>
+            <ImageView android:layout_width="28dp" android:layout_height="28dp" android:src="@drawable/ic_setup_bell" android:contentDescription="@null"/>
+            <TextView style="@style/UF.Title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:gravity="center" android:text="@string/setup_notifications_title"/>
+            <TextView style="@style/UF.Muted" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:gravity="center" android:paddingHorizontal="24dp" android:text="@string/setup_notifications_subtitle"/>
+            <com.google.android.material.card.MaterialCardView style="@style/UF.Card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:layout_marginBottom="0dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingVertical="4dp">
+                    <androidx.appcompat.widget.SwitchCompat android:id="@+id/sw_daily" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:minHeight="52dp" android:paddingHorizontal="16dp" android:text="@string/setup_notif_daily" android:textColor="@color/ink" android:textSize="14sp"
+                        app:thumbTint="@color/switch_thumb" app:trackTint="@color/switch_track"/>
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginHorizontal="16dp" android:background="@color/track"/>
+                    <androidx.appcompat.widget.SwitchCompat android:id="@+id/sw_streak" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:minHeight="52dp" android:paddingHorizontal="16dp" android:text="@string/setup_notif_streak" android:textColor="@color/ink" android:textSize="14sp"
+                        app:thumbTint="@color/switch_thumb" app:trackTint="@color/switch_track"/>
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginHorizontal="16dp" android:background="@color/track"/>
+                    <androidx.appcompat.widget.SwitchCompat android:id="@+id/sw_suggestions" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:minHeight="52dp" android:paddingHorizontal="16dp" android:text="@string/setup_notif_suggestions" android:textColor="@color/ink" android:textSize="14sp"
+                        app:thumbTint="@color/switch_thumb" app:trackTint="@color/switch_track"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1.4"/>
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+        <TextView android:id="@+id/btn_skip_setup" android:layout_width="wrap_content" android:layout_height="48dp" android:gravity="center_vertical"
+            android:clickable="true" android:focusable="true" android:paddingEnd="20dp" android:text="@string/setup_skip"
+            android:textColor="@color/mute" android:textSize="14sp"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_continue" style="@style/UF.Button"
+            android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:text="@string/setup_start_studying"
+            android:textSize="15sp" android:textStyle="bold"/>
+    </LinearLayout>
+</LinearLayout>

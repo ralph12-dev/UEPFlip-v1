@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_my_decks">My decks</string>
+    <string name="home_stat_streak">day streak</string>
+    <string name="home_stat_due">due today</string>
+    <string name="home_stat_accuracy">accuracy</string>
+</resources>

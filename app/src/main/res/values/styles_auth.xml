@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Auth.Title" parent="">
+        <item name="android:textColor">@color/auth_brand</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:gravity">center</item>
+    </style>
+    <style name="Auth.Subtitle" parent="">
+        <item name="android:textColor">@color/auth_brand</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:lineSpacingExtra">2dp</item>
+        <item name="android:gravity">center</item>
+    </style>
+    <style name="Auth.Label" parent="">
+        <item name="android:textColor">@color/auth_label</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:layout_marginBottom">6dp</item>
+    </style>
+    <style name="Auth.Field" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">44dp</item>
+        <item name="android:background">@drawable/auth_bg_input</item>
+        <item name="android:paddingHorizontal">14dp</item>
+        <item name="android:textColor">@color/auth_field_text</item>
+        <item name="android:textColorHint">@color/auth_hint</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:importantForAutofill">no</item>
+    </style>
+    <style name="Auth.Button" parent="Widget.Material3.Button">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">46dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="cornerRadius">12dp</item>
+    </style>
+    <style name="Auth.Button.Light">
+        <item name="backgroundTint">@color/auth_field</item>
+        <item name="android:textColor">@color/auth_field_text</item>
+        <item name="iconTint">@null</item>
+        <item name="iconGravity">textStart</item>
+        <item name="iconPadding">10dp</item>
+        <item name="iconSize">18dp</item>
+    </style>
+    <style name="Auth.Button.Primary">
+        <item name="backgroundTint">@color/auth_button</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+</resources>

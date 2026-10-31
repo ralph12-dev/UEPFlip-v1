@@ -115,6 +115,10 @@ class MainActivity : AppCompatActivity() {
     fun goHome() = show(HomeFragment(), R.id.nav_home)
     fun goDecks() = show(DecksFragment(), R.id.nav_decks)
     fun goStats() = show(StatsFragment(), R.id.nav_stats)
+    fun goProfile() = push(MyProfileFragment())
+    fun goSettings() = push(SettingsFragment())
+    fun goNotifications() = push(NotificationsFragment())
+    fun goAbout() = push(AboutFragment())
     fun goCreate() = push(CreateFragment())
     fun goStudy(deckId: Long) = push(StudyFragment.newInstance(deckId))
 

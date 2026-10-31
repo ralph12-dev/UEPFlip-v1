@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_study">Study</string>
+    <string name="settings_daily_goal">Daily goal</string>
+    <string name="settings_default_difficulty">Default difficulty</string>
+    <string name="settings_auto_advance">Auto-advance after rating</string>
+    <string name="settings_resolve_sync">Resolve sync conflict</string>
+    <string name="settings_notifications">Notification Preferences</string>
+    <string name="settings_privacy">Privacy &amp; Policy</string>
+    <string name="settings_about">About</string>
+    <string name="settings_cards_value">%1$d cards</string>
+    <string name="settings_easy">Easy</string>
+
+    <string name="notif_title">Notifications</string>
+    <string name="notif_study_reminders">Study reminders</string>
+    <string name="notif_study_reminders_desc">A daily nudge at your chosen time</string>
+    <string name="notif_streak">Streak alerts</string>
+    <string name="notif_streak_desc">Before your streak is about to break</string>
+    <string name="notif_reviews_due">Reviews due</string>
+    <string name="notif_reviews_due_desc">When cards are ready for review</string>
+    <string name="notif_deck_updates">Deck updates</string>
+    <string name="notif_deck_updates_desc">When an AI deck finishes generating</string>
+    <string name="notif_tutor_tips">AI tutor tips</string>
+    <string name="notif_tutor_tips_desc">Occasional study suggestions</string>
+    <string name="notif_product_news">Product news</string>
+    <string name="notif_product_news_desc">New features and offers</string>
+    <string name="notif_quiet_title">Quiet hours</string>
+    <string name="notif_quiet_desc">No notifications between these times.</string>
+    <string name="notif_quiet_from">From</string>
+    <string name="notif_quiet_to">To</string>
+    <string name="notif_quiet_enable">Enable quiet hours</string>
+    <string name="notif_save">Save preferences</string>
+    <string name="notif_saved">Preferences saved</string>
+</resources>

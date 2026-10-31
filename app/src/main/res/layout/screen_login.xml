@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Login screen. Design only: no logic, no navigation, not referenced by any Activity/Fragment. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/auth_page"
+    android:fillViewport="true"
+    android:overScrollMode="never">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="64dp"
+            android:text="@string/auth_logo"
+            android:textColor="@color/auth_logo"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.04" />
+
+        <ImageView
+            android:layout_width="260dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="28dp"
+            android:adjustViewBounds="true"
+            android:contentDescription="@string/auth_mascot_desc"
+            android:src="@drawable/auth_mascot_peek"
+            android:translationY="4dp" />
+
+        <!-- Sheet is declared after the mascot so it covers the bottom of the paws. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@drawable/auth_bg_sheet"
+            android:orientation="vertical"
+            android:paddingHorizontal="28dp"
+            android:paddingTop="28dp"
+            android:paddingBottom="24dp">
+
+            <TextView
+                style="@style/Auth.Title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/login_title"
+                android:textSize="26sp" />
+
+            <TextView
+                style="@style/Auth.Subtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:text="@string/login_subtitle" />
+
+            <TextView
+                style="@style/Auth.Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="@string/auth_email" />
+
+            <EditText
+                style="@style/Auth.Field"
+                android:hint="@string/auth_email_hint"
+                android:inputType="textEmailAddress" />
+
+            <TextView
+                style="@style/Auth.Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="@string/auth_password" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <EditText
+                    style="@style/Auth.Field"
+                    android:hint="@string/auth_password_hint"
+                    android:inputType="textPassword"
+                    android:paddingEnd="44dp" />
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="14dp"
+                    android:contentDescription="@string/auth_icon_desc_toggle_password"
+                    android:src="@drawable/auth_ic_eye_off" />
+            </FrameLayout>
+
+            <!-- Or divider -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginVertical="14dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"
+                    android:background="@color/auth_line" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="12dp"
+                    android:text="@string/auth_or"
+                    android:textColor="@color/auth_label"
+                    android:textSize="11sp" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"
+                    android:background="@color/auth_line" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                style="@style/Auth.Button.Light"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/login_google"
+                app:icon="@drawable/auth_ic_google" />
+
+            <com.google.android.material.button.MaterialButton
+                style="@style/Auth.Button.Light"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/login_guest" />
+
+            <!-- Pushes the footer to the bottom on tall screens -->
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="24dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/login_no_account"
+                    android:textColor="@color/auth_label"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="@string/login_sign_up"
+                    android:textColor="@color/auth_brand"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- My Profile + Privacy & Policy screens. Design only. Prefixed me_ so nothing existing is touched. -->
+<resources>
+    <color name="me_bg">#F5EEE3</color>
+    <color name="me_card">#FCF8F1</color>
+    <color name="me_ink">#3B2A1F</color>
+    <color name="me_mute">#8A7B6C</color>
+    <color name="me_divider">#EDE3D3</color>
+    <color name="me_chip">#F5EBDD</color>
+    <color name="me_hero_start">#F7E1DB</color>
+    <color name="me_hero_end">#F8EEE4</color>
+    <color name="me_hill">#FBF5EC</color>
+    <color name="me_danger">#E5383B</color>
+    <color name="me_white">#FFFFFF</color>
+    <color name="me_ring">#E3D5C2</color>
+    <color name="me_ring_pink">#EDA9BC</color>
+</resources>

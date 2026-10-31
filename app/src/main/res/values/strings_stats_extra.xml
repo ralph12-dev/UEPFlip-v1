@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings/array the Stats screen uses but no values file defines. If the build reports
+     "Duplicate resources" for any of these, your project already has them: delete this file. -->
+<resources>
+    <string name="stats_tile_streak">Day streak</string>
+    <string name="stats_tile_cards_week">Reviews this week</string>
+    <string name="stats_tile_accuracy">Recall rate</string>
+    <string name="stats_accuracy_week">Accuracy this week</string>
+    <string name="stats_progress_by_deck">Progress by deck</string>
+    <string name="stats_bar_desc">%1$s: %2$s accuracy</string>
+    <string name="stats_bar_none">%1$s: no reviews</string>
+    <string-array name="stats_day_names">
+        <item>Monday</item>
+        <item>Tuesday</item>
+        <item>Wednesday</item>
+        <item>Thursday</item>
+        <item>Friday</item>
+        <item>Saturday</item>
+        <item>Sunday</item>
+    </string-array>
+</resources>

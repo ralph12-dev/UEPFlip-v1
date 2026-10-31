@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Header mascot circle: white fill + 2dp pink ring so it stays visible on the cream background. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="@color/me_white" />
+    <stroke android:width="2dp" android:color="@color/me_ring_pink" />
+</shape>
