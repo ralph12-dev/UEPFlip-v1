@@ -25,9 +25,8 @@ JVM tests that should stay green (no device needed): `Sm2SchedulerTest` (SM-2 ma
 `ReviewApplicationTest` (which fields a review persists), `DeckStatsTest` (mastery/due/labels),
 `AiFlashcardGeneratorTest` (Gemini request/response handling via a stubbed OkHttp client, including
 hint + answer-evaluation parsing), and `AiModelResolutionTest` (Gemini model-id resolution: `models/`
-prefix stripping, rejection of junk, and the exact endpoint URL). `AiModelResolutionTest` is
-**currently unverified** — it was added while builds were frozen and has never been compiled, so it
-must be run before its green is claimed.
+prefix stripping, rejection of junk, and the exact endpoint URL). The full suite was last run green
+on 2026-10-31 (87 tests, 0 failures) in the `UEPFLIP_` repo.
 `app/build.gradle.kts` sets `testOptions.unitTests.isReturnDefaultValues = true` so `android.util.Log`
 calls on the JVM don't throw.
 
@@ -101,12 +100,15 @@ calls on the JVM don't throw.
 ## UI layers
 
 - Everything is now one app on the fragment shell in `ui/main`: `MainActivity` (launcher) hosts
-  Home / Decks / Stats / Tutor tabs plus pushed detail screens `CreateFragment` and `StudyFragment`.
-  All of it reads and writes Room; there is no hardcoded demo data in the UI layer (debug builds do
-  seed real rows on first launch — see "Sample data").
+  Home / Decks / Stats / Tutor tabs plus pushed detail screens `CreateFragment`, `StudyFragment`,
+  `MyProfileFragment`, `SettingsFragment`, `NotificationsFragment`, `AboutFragment`, and the
+  onboarding setup flow (`SetupFeaturesFragment` → `SetupGoalFragment` → `SetupNotificationsFragment`,
+  driven by `OnboardingFlow`). All of it reads and writes Room; there is no hardcoded demo data in the
+  UI layer (debug builds do seed real rows on first launch — see "Sample data").
 - `MainActivity.show(f, checkId)` is for top-level destinations (clears the back stack), `push(f)` for
-  detail screens. `MainActivity.goStudy(deckId)` / `goCreate()` / `goHome()` / `goDecks()` are the
-  entry points fragments should use.
+  detail screens. `MainActivity.goStudy(deckId)` / `goCreate()` / `goHome()` / `goDecks()` /
+  `goProfile()` / `goSettings()` / `goNotifications()` / `goAbout()` are the entry points fragments
+  should use. The launcher still gates on the `onboarding_complete` pref before showing the shell.
 - The bottom bar's visibility is **derived, never set at the call site**: `HomeFragment`,
   `DecksFragment` and `StatsFragment` implement the `NavDestination` marker and `MainActivity` reads it
   in `FragmentManager.FragmentLifecycleCallbacks.onFragmentResumed`. Setting `nav.visibility` directly
@@ -119,17 +121,29 @@ calls on the JVM don't throw.
   created by the AI import (Create/Tutor) and are not hand-editable. Deck create/rename/delete live in
   `DecksFragment` (long-press a deck for rename/delete). `StudyViewModel` is shared by the shell and
   lives in `ui/study/`.
-- `res/layout/` matches the designer's reference set exactly (13 files): `activity_main`,
-  `activity_onboarding`, `fragment_create`, `fragment_decks`, `fragment_home`, `fragment_stats`,
-  `fragment_study`, `fragment_tutor`, `item_chat_accuracy`, `item_chat_bot`, `item_chat_user`,
-  `item_deck`, `item_onboarding`. The Tutor's accuracy card is `item_chat_accuracy`, inflated by
-  `MsgAdapter` for `Msg.ACCURACY` and populated with the model's real score.
+- `res/layout/` matches the designer's reference set and now holds **25 files**: the 13 core shells
+  (`activity_main`, `activity_onboarding`, `fragment_create`, `fragment_decks`, `fragment_home`,
+  `fragment_stats`, `fragment_study`, `fragment_tutor`, `item_chat_accuracy`, `item_chat_bot`,
+  `item_chat_user`, `item_deck`, `item_onboarding`) plus `item_stats_deck`, the shared
+  `view_app_header` include (used by `fragment_home` and `fragment_stats`), the profile /
+  settings / notifications / about screens (`screen_my_profile`, `fragment_settings`,
+  `fragment_notifications`, `fragment_about`), the setup flow (`fragment_setup_features`,
+  `fragment_setup_goal`, `fragment_setup_notifications`), and **three unwired design mockups kept
+  as references — `screen_login`, `screen_register`, `screen_privacy_policy` — which no Kotlin or
+  manifest entry references** (plus their `auth_*` resources). The Tutor's accuracy card is
+  `item_chat_accuracy`, inflated by `MsgAdapter` for `Msg.ACCURACY` and populated with the model's
+  real score.
 - Layout ids referenced via `findViewById` are not compiler-checked; verify against
   `res/layout/` when editing a fragment.
 - The app is deliberately **light-only**: `Theme.UEPflip_flashcard` extends
   `Theme.Material3.Light.NoActionBar` and there is no `res/values-night/` override. All user-facing
-  copy lives in `res/values/strings.xml` (including the `bottom_nav.xml` titles) — don't hardcode
-  layout text.
+  copy lives in `res/values/strings.xml` and the per-area string files (`strings_home`,
+  `strings_stats` + `strings_stats_extra`, `strings_me`, `strings_settings`, `strings_about`,
+  `strings_setup`, `strings_auth`) — including the `bottom_nav.xml` titles; don't hardcode layout
+  text. `AppSettings` stores the Settings/Notifications screen's preferences under the
+  **same** SharedPreferences file and keys as `OnboardingFlow`, so the setup flow and the settings
+  screens edit one source of truth. They are stored choices only — nothing schedules notifications
+  yet, and the study screen does not read `autoAdvance`/`defaultDifficulty` yet.
 - Study flow follows the design: the answer is revealed by tapping the card (`study_tap_reveal` /
   `study_tap_question`), the difficulty segment (`diff_easy` / `diff_normal` / `diff_hard`, always
   visible) only *selects* a rating, and `btn_next_card` commits it through

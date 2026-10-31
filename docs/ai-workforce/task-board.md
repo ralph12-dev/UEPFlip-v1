@@ -33,13 +33,20 @@ history. Do not turn `handoff.md` or this file into an activity log.
 | T-011 | Two `T-009` review leftovers in `data/service/**`: `GeminiCandidate.finishReason` is parsed and never read, so a `MAX_TOKENS` truncation surfaces as the uninformative "The AI returned an empty response"; and `"$endpoint?key=$apiKey"` interpolates the key unencoded (`&`/`#` would corrupt it) | T-009 | low | NOT_STARTED |
 | T-012 | Hint latency: no `generationConfig` was sent, so Gemini 3.x thought at its default level (`medium`/`high`) before producing any text and the non-streaming call returned only at the end. Fix: `thinkingLevel = "low"` for hint/grading/explanation only; flashcards keep the model default; field emitted only for `gemini-3*`/`gemini-4*`/`*-latest`; no `maxOutputTokens` (it counts thought tokens and truncates). Owner: `ai-engineer` (`data/service/**`); tests by `qa-engineer` | T-009 | medium | IN_PROGRESS — applied, inspected, **never compiled or run** |
 | T-013 | Two `T-012` review follow-ups: (a) the model→level policy `AiGeneratorProvider.acceptsThinkingLevel()` has no test, so the three wire tests stay green even if it answers wrongly for real ids — extract a pure `internal fun supportsThinkingLevel(model)` to the generator companion and table-test the documented rows; (b) only `generateHint` is asserted to propagate the level, so a dropped argument in `evaluateAnswer`/`generateExplanation` would pass the suite. MEDIUM/LOW, not defects today | T-012 | medium | NOT_STARTED |
-| T-014 | Hints are pre-generated with the card and stored so "show hint" is instant. `GeneratedCard.hint` → `CardEntity.hint` (nullable TEXT, Room 2→3 + `MIGRATION_2_3`), persisted by `DocumentImportViewModel` and `TutorViewModel`; `StudyViewModel` renders a stored hint with no network, falls back to `generateHint` + `saveHint` for old/sample cards; `saveHint` is a targeted UPDATE. Owners: `ai-engineer` (`data/service`, `ui/document`), `data-engineer` (`data/local`, `data/repository`), `android-engineer` (`ui/study`, `ui/main`), `qa-engineer` (tests) | T-009 | **high** | IN_PROGRESS — applied, reviewed (APPROVE WITH NITS; the two MEDIUM code gaps were fixed in the tree), **never compiled or run**; migration unverified without a v2→v3 upgrade run |
+| T-014 | Hints are pre-generated with the card and stored so "show hint" is instant. `GeneratedCard.hint` → `CardEntity.hint` (nullable TEXT, Room 2→3 + `MIGRATION_2_3`), persisted by `DocumentImportViewModel` and `TutorViewModel`; `StudyViewModel` renders a stored hint with no network, falls back to `generateHint` + `saveHint` for old/sample cards; `saveHint` is a targeted UPDATE. Owners: `ai-engineer` (`data/service`, `ui/document`), `data-engineer` (`data/local`, `data/repository`), `android-engineer` (`ui/study`, `ui/main`), `qa-engineer` (tests) | T-009 | **high** | DONE - compile + JVM-verified 2026-10-31 in UEPFLIP_ (testDebugUnitTest 87 tests / 0 failures); device upgrade run still outstanding (T-015 item a)
 | T-015 | `T-014` review follow-ups: (a) **MEDIUM** — no test executes `MIGRATION_2_3`; the in-memory DB is created fresh at v3, so only a hand-built v2 file opened through the builder proves the upgrade (and it must be run on a device before release); (b) **MEDIUM** — `saveHint` trim/blank no-op, `insertCard(hint=…)` normalisation, the stored-hint fast path and the mid-request card-change guard are untested; (c) **LOW** — the leak check is not Unicode-normalised, so NFC/NFD spellings of the same accented answer can slip through; (d) **NIT** — the no-space hard cut can split a surrogate pair (emoji) at the 240-char boundary | T-014 | medium | NOT_STARTED |
+| T-016 | Merge the full designer UI snapshot (Downloads/RALPH SERNA/UEPflip-main, last built 2026-10-31) into new repo UEPFLIP_ (history-preserving clone; original repo and snapshot retired as backups). New wired screens: Profile, Settings, Notifications, About, setup flow; redesigned Home/Stats/Decks; 12 new layouts + ~95 resources; ten ui.main-package sources normalized from ui/ root into ui/main/. screen_login / screen_register / screen_privacy_policy stay unwired mockups (deliberate). Owner: orchestrator (overlay) | - | T-005 | DONE - assembleDebug + testDebugUnitTest green (handoff section 11, 2026-10-31) |
 
 `T-005` needs explicit user authorization before any commit.
 
 ## T-004 / T-009 — live-AI bring-up (current, read this before touching AI code)
 
+> **2026-10-31 correction (supersedes the freeze-era statuses):** the build/test freeze ended. New repo
+> UEPFLIP_ compiled the whole tree - T-009, T-010, T-012, T-014 included - and ran the JVM suite
+> green (8 suites / 87 tests / 0 failures). Every "IN_PROGRESS - never compiled or run" status above is
+> therefore compile- and test-verified now; the rows are updated one by one only where touched.
+> `T-004` functional confirmation still rests on the user's live device report, and `T-015` (a) - a real
+> v2->v3 device upgrade run - remains genuinely outstanding.
 - **T-004 is now functionally confirmed by the user:** `gemini_api_key` exists in the Firebase project
   `uepflip-flashcard`, and after installing a build containing `T-009` the user reported live AI
   generation works. The Gradle rows for that build remain `NOT_RUN` here (it was built outside this
@@ -119,6 +126,7 @@ Enabling schema export starts committing `app/schemas/**` to the repo — that i
 decision, so it needs a `decisions.md` entry before implementation begins.
 
 ## Logs
+- `logs/task-016.md` - full designer UI merge (DONE).
 
 - `logs/task-001.md` — workforce bootstrap (done).
 - `logs/task-002.md` — handoff protocol and task-state split (done).

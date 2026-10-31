@@ -240,3 +240,15 @@ Instrumented cases (`AppDatabaseTest`):
 Gemini returns usable hints. The `MIGRATION_2_3` upgrade path has **no automated test** — the migration
 is private and `exportSchema = false`, the same `T-006` blocker — so a v2 database upgraded on a device
 is the only proof.
+
+
+### 2026-10-31 — T-016 — full UI merge verification (repo `UEPFLIP_`)
+
+| Command | Result | Output / notes |
+|---|---|---|
+| `./gradlew.bat :app:assembleDebug :app:testDebugUnitTest --console=plain` | PASS | `BUILD SUCCESSFUL in 2m 07s`, 46 tasks executed. First green build that covers the T-009 / T-012 / T-014 tree changes together with the merged UI. |
+| `app/build/outputs/apk/debug/app-debug.apk` | PASS | APK produced, ~15.0 MB (14,999,429 B). |
+| `app/build/test-results/testDebugUnitTest` | PASS | 8 suites, **87 tests, 0 failures, 0 errors, 0 skipped**. Includes `AiModelResolutionTest` (20 tests) — previously claimed unverified. |
+| `git diff --ignore-cr-at-eol --quiet` sweep + `git checkout --` | PASS | 128 EOL-only modifications reverted; 12 real changes left for the commit. Prevents line-ending noise from entering history. |
+| `connectedDebugAndroidTest` | NOT_RUN | no device/emulator attached during the merge. |
+| device run of the redesigned Home/Stats/Decks | NOT_RUN | no UI-level verification recorded; do not claim rendering correctness. |

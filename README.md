@@ -42,7 +42,7 @@ An offline-first Android flashcard application with AI-powered card generation, 
 
 ## Screenshots
 
-> **Note:** Screenshots require an Android device or emulator to capture. The app follows the designer's reference UI exactly (13 layout files).
+> **Note:** Screenshots require an Android device or emulator to capture. The app follows the designer's reference UI (25 layout files; 22 wired, 3 mockups kept as references).
 
 **Key Screens:**
 - **Home** — Greeting, overdue reviews, recent decks, and progress card
@@ -51,7 +51,8 @@ An offline-first Android flashcard application with AI-powered card generation, 
 - **My Decks** — Searchable deck list with mastery indicators
 - **Statistics** — Study progress, review history, and spaced repetition insights
 - **AI Tutor** — Chat interface with answer grading and accuracy feedback
-- **Onboarding** — 4-page walkthrough with mascot and feature highlights
+- **Onboarding** — 4-page walkthrough plus a 3-step setup flow (features, goal, notifications)
+- **My Profile / Settings / Notifications / About** — Account screen and preference-driven setup (profile picture, quiet hours, toggles)
 
 ---
 

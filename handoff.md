@@ -20,24 +20,21 @@ claim against the repository before acting on it.
 
 ## 2. Current Status
 
-- **Overall status:** `IN_PROGRESS` — features implemented. **Live AI works** (the user rebuilt with
-  the `T-009` patch and confirmed generation). Two follow-on changes are applied and **compile- and
-  test-unverified**: hint thinking level (`T-012`) and stored pre-generated hints (`T-014`).
-- **Last updated:** 2026-10-19 — AI confirmed working after `T-009`; hint latency root-caused and
-  patched (`T-012`); handoff corrected.
-- **Current phase:** AI polish. The three AI blockers are closed:
-  1. the user configured `gemini_api_key` in Remote Config, and it is now served;
-  2. `error 404` was root-caused: `AiFlashcardGenerator` hardcoded `gemini-2.0-flash`, which Google
-     **shut down on 2026-06-01**, so every AI feature (Create, Tutor, Hint) failed identically;
-  3. the user rebuilt/reinstalled and reported **"it worked"** — live generation is confirmed by the
-     only evidence that counts (a real request against the real model).
-- **Correction to an earlier claim:** a previous entry in this file recorded the app as `DONE` with
-  build and tests suppressed. That was wrong — `DONE` here requires build + tests + review, and it is
-  now known that the AI path was broken at the time. Do not restore that claim.
-- **Last verified build:** **none this session.** The user invoked `DO NOT BUILD AND TEST`, so the
-  patch in §4.4 is unverified by the compiler. The last green compile/test/assemble runs are in §11
-  and **predate this change**.
-- **Last verified tests:** none this session — the JVM suite has not been run against the §4.4 patch.
+- **Overall status:** `IN_PROGRESS` — features implemented and working. **Live AI works** (the user
+  rebuilt with the `T-009` patch and confirmed generation), and the `T-012` / `T-014` follow-on
+  changes are now **compile- and test-verified** (see §11, 2026-10-31). The full designer UI
+  (My Profile, Settings, Notifications, About, setup flow, redesigned Home/Stats/Decks) is merged
+  in (§4.7 / `T-016`).
+- **Last updated:** 2026-10-31 — full UI snapshot merged, sources normalized under `ui/main`, and
+  `assembleDebug` + `testDebugUnitTest` verified green.
+- **Current phase:** UI integration. The AI blockers remain closed (`gemini_api_key` served,
+  retired `gemini-2.0-flash` root-caused and replaced by the Remote Config `gemini_model`).
+- **Last verified build:** 2026-10-31 — `:app:assembleDebug` `BUILD SUCCESSFUL` in 2m 07s; artifacts
+  in `app/build/outputs/apk/debug/app-debug.apk`.
+- **Last verified tests:** 2026-10-31 — `testDebugUnitTest` 8 suites, **87 tests, 0 failures,
+  0 errors, 0 skipped**.
+- **No device run has been recorded yet** for the merged UI; instrumented tests were not executed
+  (require an attached device/emulator).
 
 ## 3. Architecture and Constraints
 
@@ -50,8 +47,8 @@ claim against the repository before acting on it.
 - **Navigation:** one fragment shell in `ui/main` — `MainActivity` hosts Home / Decks / Stats /
   Tutor tabs plus pushed `CreateFragment` and `StudyFragment`. Bottom-bar visibility is derived
   from the `NavDestination` marker, never assigned at the call site.
-- **Persistence:** Room 2.8.5, `AppDatabase` version 2, `exportSchema = false`, hand-written
-  `MIGRATION_1_2`. Multi-table writes run in `withTransaction` inside the repository.
+- **Persistence:** Room 2.8.5, `AppDatabase` version 3, `exportSchema = false`, hand-written
+  `MIGRATION_1_2` and `MIGRATION_2_3`. Multi-table writes run in `withTransaction` inside the repository.
 - **Network/API integrations:** Gemini `generateContent` via `data/service/AiFlashcardGenerator`
   (OkHttp + Moshi), API key from Firebase Remote Config key `gemini_api_key`; **the model id also
   comes from Remote Config** (`gemini_model`, default `gemini-flash-latest` via
@@ -60,8 +57,15 @@ claim against the repository before acting on it.
   on-device PDF extraction; Firebase Remote Config for key resolution. The app does **not** use the
   Firebase AI Logic SDK.
 - **Minimum Android SDK:** 26.
-- **Required design conventions:** the 13 `res/layout/` files match a designer's reference; all
-  user-facing copy in `res/values/strings.xml`; UI label "Normal" for `Sm2Scheduler.RATING_MEDIUM`.
+- **Required design conventions:** the `res/layout/` files match a designer's reference (25 files:
+  22 wired — including the shared `view_app_header` include — plus 3 **unwired mockups** kept as
+  references: `screen_login.xml`, `screen_register.xml`, `screen_privacy_policy.xml`, with their
+  `auth_*` drawables / `strings_auth` / `styles_auth` / `colors_auth`); all user-facing copy in
+  `res/values/strings*.xml`; UI label "Normal" for `Sm2Scheduler.RATING_MEDIUM`.
+- **Repository:** `UEPFLIP_` (local git, no remote) seeded from the prior
+  `AndroidStudioProjects/UEPflip_flashcard` history; the full-UI snapshot merged from
+  `Downloads/RALPH SERNA/UEPflip-main` (§4.7). Both source folders are retired backups — do not
+  edit them.
 - **Constraints that must not be violated:**
   - Pinned toolchain; dependency changes need justification.
   - Room schema change ⇒ version bump **plus** migration. Never
@@ -243,7 +247,31 @@ claim against the repository before acting on it.
   a mismatch between the entity and the migrated schema throws on first `getDatabase()` and takes
   every screen with it.
 
-## 5. Active Work
+### 4.7 Full designer UI merge (`T-016`)
+
+- **Feature:** the complete designer UI snapshot (last built 2026-10-31 by the designer) merged onto
+  the AI-complete codebase. The snapshot was a **strict superset** of the prior repo: 96 shared
+  files byte-identical, and every data/domain/AI class (Room entities, DAOs, scheduler,
+  `AiFlashcardGenerator`, `FlashcardRepository`, `AppDatabase`) unchanged — so nothing was lost.
+- **Implementation:**
+  - New repo `UEPFLIP_` created by cloning the prior local repo (full 11-commit history preserved),
+    then overlaying the snapshot via `robocopy`; origin removed (local-only, user choice).
+  - New screens, wired through `MainActivity` pushes: `MyProfileFragment` (`screen_my_profile`),
+    `SettingsFragment`, `NotificationsFragment`, `AboutFragment`, and the onboarding setup flow
+    (`SetupFeaturesFragment`, `SetupGoalFragment`, `SetupNotificationsFragment`) driven by
+    `OnboardingFlow` + `AppSettings` (shared preferences keys with onboarding).
+  - Redesigned `fragment_home`, `fragment_stats` (donut/bar charts, `StatsDeckAdapter`),
+    `fragment_decks`, `item_deck`; shared `view_app_header` include used by home and stats.
+  - New `domain/StudyActivity.kt`; `MainActivity` gained `goProfile/goSettings/goNotifications/goAbout`.
+  - Structure normalized: the ten `.ui.main`-package sources that sat at `ui/` root in the snapshot
+    moved to `ui/main/` (pure file move; packages already declared `ui.main`). Only
+    `ui/SimpleViewModelFactory.kt` remains outside `ui/main`, matching its `ui` package.
+  - Unwired mockups kept per user choice: `screen_login`, `screen_register`,
+    `screen_privacy_policy` (+ `auth_*` resources). No Kotlin or manifest entries reference them.
+- **Verification performed:** `:app:assembleDebug`, `:app:testDebugUnitTest` (§11).
+- **Evidence:** `BUILD SUCCESSFUL in 2m 07s`, APK at `app/build/outputs/apk/debug/app-debug.apk`;
+  tests 8 suites / 87 / 0 failures.
+- **Not done here:** wiring the three auth mockups; `connectedDebugAndroidTest` (no device attached).
 
 **Four tasks are in flight and all are unverified: `T-009`** (§4.4) — the retired-model patch, now
 functionally confirmed live but still never compiled in this session — **`T-010`**, the
@@ -264,6 +292,8 @@ everything.
 
 **Last verified-complete task:** `T-003a` — completed, independently re-verified by the orchestrator,
 and reviewed (`docs/ai-workforce/logs/task-003.md`).
+
+## 5. Active Work
 
 ### How `T-003a` was delegated (completed record)
 
@@ -519,6 +549,18 @@ claims and only a build + a device run settle them.
 **The schema migration is the single riskiest unverified change in the tree.** A mismatch between
 `CardEntity` and the migrated `cards` table throws on the first `getDatabase()` and crashes every
 screen, so a fresh install is not enough — it needs an upgrade from a v2 database on a device.
+
+### 2026-10-31 — `T-016` — full UI merge - **build + tests green**
+
+- **Commands:** `.\gradlew.bat :app:assembleDebug :app:testDebugUnitTest` in `UEPFLIP_`.
+- **Result:** `BUILD SUCCESSFUL in 2m 07s`, 46 tasks executed. `testDebugUnitTest` ran 8 suites:
+  **87 tests, 0 failures, 0 errors, 0 skipped** (`app/build/test-results/testDebugUnitTest`).
+- **Artifact:** `app/build/outputs/apk/debug/app-debug.apk` (≈15 MB).
+- **Not run:** `connectedDebugAndroidTest` (no device/emulator attached); no device run of the
+  merged UI has been recorded. The Remote Config `gemini_api_key` / `gemini_model` path inherits
+  the user-confirmed `T-009` status; no AI request was re-fired this session.
+- **Scope caveat:** this verifies compile + JVM behavior only — it does not prove the redesigned
+  Home/Stats screens render correctly on a device.
 
 ## 12. Next Actions
 
