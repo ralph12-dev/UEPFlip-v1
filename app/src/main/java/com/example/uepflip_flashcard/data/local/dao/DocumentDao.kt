@@ -21,6 +21,14 @@ interface DocumentDao {
     @Delete
     suspend fun deleteDocument(document: DocumentEntity)
 
+    /**
+     * Deletes every document belonging to a deck. The repository calls this before (and inside the
+     * same transaction as) deleting the deck, because `deckId` carries no foreign key (T-007) —
+     * skipping this would orphan the deck's `extractedText` payloads.
+     */
+    @Query("DELETE FROM documents WHERE deckId = :deckId")
+    suspend fun deleteDocumentsForDeck(deckId: Long)
+
     @Query("SELECT * FROM documents WHERE deckId = :deckId ORDER BY createdAt DESC")
     fun getDocumentsByDeckId(deckId: Long): Flow<List<DocumentEntity>>
 

@@ -4,10 +4,8 @@ UEPflip — offline-first Android flashcard app. Single Gradle module `:app`, Ko
 MVVM/Repository over Room, with an SM-2 spaced-repetition engine. Package / namespace / appId:
 `com.example.uepflip_flashcard`.
 
-This project is worked on by an AI engineering team defined in `.opencode/agents/`: an
-`orchestrator` plus the specialists `android-engineer`, `ui-engineer`, `data-engineer`,
-`ai-engineer`, `qa-engineer`, and the read-only `code-reviewer`. Their roles, permitted files, and
-verification duties are defined in **Android Project Engineering Rules** at the end of this file.
+This project is worked on by the read-only `code-reviewer` agent defined in `.opencode/agents/`.
+Its role is defined in **Android Project Engineering Rules** at the end of this file.
 
 ## Commands (run from repo root; this repo is on Windows)
 
@@ -219,12 +217,6 @@ whether the work is actually complete.
 
 | Agent file | Role | May write | Must not |
 | --- | --- | --- | --- |
-| `orchestrator.md` | Engineering lead; plans, assigns ownership, delegates, verifies | shared files + anything it verifies and fixes itself | commit/push without authorization |
-| `android-engineer.md` | Kotlin logic and architecture | `domain/**`, `ui/main/**`, `ui/study/**`, `ui/SimpleViewModelFactory.kt` | `res/`, `data/`, tests, Gradle, manifest |
-| `ui-engineer.md` | Layouts, drawables, values, themes, string copy | `app/src/main/res/**` | any Kotlin/Java, manifest, Gradle |
-| `data-engineer.md` | Room entities, DAOs, migrations, repositories, seed data | `data/local/**`, `data/repository/**`, `data/model/**`, `data/sample/**` | `data/service/**`, `ui/**`, `domain/**` |
-| `ai-engineer.md` | Gemini, Remote Config, PDF extraction, import flow | `data/service/**`, `ui/document/**` | `domain/**`, `ui/main/**`, `ui/study/**` |
-| `qa-engineer.md` | Unit and instrumented tests, regressions, triage | `app/src/test/**`, `app/src/androidTest/**` | **all production code** |
 | `code-reviewer.md` | Independent review | **nothing — read-only** | edit, write, run arbitrary shell, launch agents |
 
 Ownership is enforced in each agent file's `permissions` block (OpenCode V2 rule list), not just by
@@ -241,11 +233,6 @@ convention: a specialist that tries to edit outside its lane is refused by the t
 
 ## Delegation
 
-- UI and layouts: ui-engineer
-- Kotlin logic and architecture: android-engineer
-- Database and persistence: data-engineer
-- AI and network integrations: ai-engineer
-- Testing and regressions: qa-engineer
 - Independent review: code-reviewer
 
 Use the available subagent mechanism to delegate work.
@@ -262,12 +249,12 @@ navigation graphs, AndroidManifest.xml, and shared models.
 In this repo the shared files are: `build.gradle.kts`, `app/build.gradle.kts`,
 `gradle/libs.versions.toml`, `gradle/gradle-daemon-jvm.properties`, `settings.gradle.kts`,
 `gradle.properties`, `app/src/main/AndroidManifest.xml`, `res/values/strings.xml`, `README.md`,
-`AGENTS.md`, `handoff.md`, everything under `docs/ai-workforce/`, and `.opencode/**`. **No specialist
-owns these** — only the orchestrator changes them, one at a time.
+`AGENTS.md`, `handoff.md`, `.opencode/**`. **No agent owns these** — only the orchestrator changes
+them, one at a time.
 
 The orchestrator is also the **handoff maintainer**: it is the only agent allowed to write
-`handoff.md` and `docs/ai-workforce/**`. Every other specialist is explicitly denied those paths
-and reports results upward instead, so concurrent agents can never overwrite the record.
+`handoff.md`. Every other agent is explicitly denied writes to `handoff.md` and reports results
+upward instead, so concurrent agents can never overwrite the record.
 
 A specialist whose task crosses its lane reports the dependency back to the orchestrator instead of
 editing another specialist's file. The orchestrator sequences it as a follow-up for the owning lane.
@@ -382,28 +369,8 @@ Do not claim the handoff is complete if the file was not saved.
 
 ### Task state tracking
 
-Do not let `handoff.md` become an ever-growing activity log. It holds **current state** and points
-at the detailed records:
+`handoff.md` holds the checkpoint: objective, status, architecture constraints, completed and active
+work, pending tasks, decisions, blockers, git state, verification record, next actions.
 
-```text
-handoff.md
-docs/
-└── ai-workforce/
-    ├── task-board.md
-    ├── decisions.md
-    ├── test-results.md
-    └── logs/
-        └── task-001.md
-```
-
-- `handoff.md` — the checkpoint: objective, status, architecture constraints, completed and active
-  work, pending tasks, decisions, blockers, git state, verification record, next actions.
-- `docs/ai-workforce/task-board.md` — authority for ownership, dependencies, and task status.
-- `docs/ai-workforce/decisions.md` — append-only decision log. Never reverse an established
-  decision without documenting why.
-- `docs/ai-workforce/test-results.md` — append-only log of commands and actual results.
-- `docs/ai-workforce/logs/task-NNN.md` — full per-task detail and debugging history.
-
-`handoff.md` and `task-board.md` are both auto-loaded into every session through the `instructions`
-key in `.opencode/opencode.jsonc`. Keep them concise so that stays cheap; long detail goes into the
-logs. The orchestrator writes all of these files and nothing else may modify them.
+`handoff.md` is auto-loaded into every session through the `instructions` key in `.opencode/opencode.jsonc`.
+Keep it concise so that stays cheap. The orchestrator writes `handoff.md` and nothing else may modify it.

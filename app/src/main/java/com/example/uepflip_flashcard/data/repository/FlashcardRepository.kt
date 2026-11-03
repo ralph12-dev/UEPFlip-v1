@@ -22,6 +22,7 @@ class FlashcardRepository(
     private val deckDao = database.deckDao()
     private val cardDao = database.cardDao()
     private val reviewDao = database.reviewDao()
+    private val documentDao = database.documentDao()
 
     // --- Decks ---------------------------------------------------------------------------------
 
@@ -48,17 +49,27 @@ class FlashcardRepository(
     }
 
     suspend fun deleteDeck(deck: DeckEntity) {
-        deckDao.deleteDeck(deck)
+        deleteDeckById(deck.id)
     }
 
+    /**
+     * Deletes a deck together with its documents in one transaction.
+     *
+     * `DocumentEntity.deckId` carries no foreign key (pre-v5 debt, task T-007), so without this
+     * ordering a plain deck delete would orphan the deck's document rows — including imported
+     * PDFs' full `extractedText` — as a silent storage leak.
+     */
     suspend fun deleteDeckById(deckId: Long) {
-        deckDao.deleteDeckById(deckId)
+        database.withTransaction {
+            documentDao.deleteDocumentsForDeck(deckId)
+            deckDao.deleteDeckById(deckId)
+        }
     }
 
     /** Removes a deck only if it has no cards — used to roll back a failed AI import. */
     suspend fun deleteDeckIfEmpty(deckId: Long) {
         if (cardDao.getCardCountForDeck(deckId) == 0) {
-            deckDao.deleteDeckById(deckId)
+            deleteDeckById(deckId)
         }
     }
 

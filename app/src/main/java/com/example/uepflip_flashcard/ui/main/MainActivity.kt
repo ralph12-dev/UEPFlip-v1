@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.uepflip_flashcard.R
 import com.example.uepflip_flashcard.data.local.AppDatabase
 import com.example.uepflip_flashcard.data.repository.AuthRepository
+import com.example.uepflip_flashcard.data.repository.SyncEngine
 import com.example.uepflip_flashcard.data.sample.SampleDataSeeder
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import kotlinx.coroutines.launch
@@ -138,11 +139,21 @@ class MainActivity : AppCompatActivity() {
 
     fun onUserSignedIn() {
         clearGuestMode()
+        SyncEngine.initialize(application, authRepository)
+        lifecycleScope.launch {
+            val db = AppDatabase.getDatabase(application)
+            SyncEngine.mergeGuestData(application, authRepository, db, "temp_user_id")
+        }
         routeAfterEntry()
     }
 
     fun onGuestContinue() {
         persistGuestMode()
+        SyncEngine.initialize(application, authRepository)
+        lifecycleScope.launch {
+            val db = AppDatabase.getDatabase(application)
+            SyncEngine.mergeGuestData(application, authRepository, db, "temp_user_id")
+        }
         routeAfterEntry()
     }
 

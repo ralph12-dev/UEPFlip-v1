@@ -4,13 +4,11 @@
   // The engineering lead is the entry point for this project. It plans, assigns file
   // ownership, and delegates to the specialists in .opencode/agents/.
   // If it fails to load, OpenCode falls back to `build`.
-  "default_agent": "orchestrator",
+  "default_agent": "code-reviewer",
 
   // The execution record is loaded into every session alongside AGENTS.md, so
-  // maintaining it does not depend on the model remembering to read it (D-008).
-  // Keep both files concise: handoff.md holds current state, task-board.md holds
-  // ownership and dependencies, and docs/ai-workforce/ holds the long history.
-  "instructions": ["handoff.md", "docs/ai-workforce/task-board.md"],
+  // maintaining it does not depend on the model remembering to read it.
+  "instructions": ["handoff.md"],
 
   // Project-wide guardrails. These apply to every agent first; each agent's own
   // `permissions` in .opencode/agents/*.md are appended afterwards and refine them

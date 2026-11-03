@@ -1,9 +1,6 @@
 # Project Handoff
 
-Durable execution record for UEPflip. This file is the **current state only** — detailed history
-lives in [`docs/ai-workforce/`](docs/ai-workforce/task-board.md). Written and maintained by the
-`orchestrator` (see **Handoff Protocol** in `AGENTS.md`). A checkpoint, not proof: verify every
-claim against the repository before acting on it.
+Durable execution record for UEPflip. This file is the **current state only**. Written and maintained by the orchestrator (see **Handoff Protocol** in `AGENTS.md`). A checkpoint, not proof: verify every claim against the repository before acting on it.
 
 ## 1. Project Objective
 
@@ -23,14 +20,19 @@ claim against the repository before acting on it.
 - **Overall status:** `IN_PROGRESS` — features implemented and working. **Live AI works** (the user
   rebuilt with the `T-009` patch and confirmed generation). The full designer UI is merged in
   (§4.7 / `T-016`). Auth scaffold (Room v4 + Firebase Auth + Google Sign-In + sync) committed.
-- **Last updated:** 2026-11-04 — T-032 (awaitable sign-in) and T-033 (internal migrations +
-  `room-testing`) done; T-034 migration test written and PASSED on device. `MIGRATION_3_4`'s users
-  DDL had two real defects the test caught (`email NOT NULL` on a nullable entity, missing
-  `syncState` column); both fixed and re-verified on the device.
-- **Current phase:** T-034 DONE. Next: T-026 (wire `SyncEngine.initialize()` + guest→account merge
-  on first Google Sign-In), then T-028/T-029/T-030 auth tests.
+- **Last updated:** 2026-11-04 — T-032/T-033/T-034 verified on device (see §11). `MIGRATION_3_4`'s
+  users DDL had two real defects the test caught (`email NOT NULL` on a nullable entity, missing
+  `syncState` column); both fixed and re-verified on the device. Afterwards T-007 (interim only),
+  T-008 and T-011 were `DEFERRED` by user permission: **three of them carry uncommitted, uncompiled
+  edits** (§10) and none is complete.
+- **Current phase:** T-034 DONE. T-007 (interim) / T-008 / T-011 are `DEFERRED` — three of them have
+  **uncommitted, uncompiled** edits in the tree (see §10). Next: T-026 (wire `SyncEngine.initialize()`
+  + guest→account merge on first Google Sign-In — verify first: `mergeGuestData` is still a `Log.d`
+  stub and neither it nor `initialize()` has a caller), then T-028/T-029/T-030 auth tests.
 - **Last verified build:** `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`,
-  `:app:testDebugUnitTest`, and `:app:assembleDebug` all pass on 2026-11-04.
+  `:app:testDebugUnitTest` and `:app:assembleDebug` all pass on 2026-11-04, **including the
+  uncommitted T-007/T-011 tree** (§11). The T-007 interim delete path, the T-014 `MIGRATION_2_3`
+  upgrade and the T-034 v3→v4 test remain **unverified on a device** — no device was attached.
 - **Last verified tests:** `testDebugUnitTest` 8 suites, **87 tests, 0 failures**.
 - **Device run recorded:** `connectedDebugAndroidTest` PASSED on TECNO CM7 (Android 16, API 36,
   serial 140902553M001209) on 2026-11-04: `AppDatabaseTest` **13/13** including the v3→v4 migration
@@ -109,20 +111,11 @@ claim against the repository before acting on it.
 
 ### 4.3 Handoff protocol and task-state split (task `T-002`)
 
-- **Feature:** the workforce now maintains a durable execution record instead of losing context.
-- **Implementation:** root `handoff.md` (checkpoint), `docs/ai-workforce/` (task board, decision
-  log, test log, per-task logs), a `## Handoff Protocol` section in `AGENTS.md`, a `/handoff`
-  command pinned to `agent: orchestrator`, and `instructions` in `.opencode/opencode.jsonc` so the
-  record is auto-loaded every session. Write access is enforced: `orchestrator` holds the only
-  allows, all six specialists hold explicit denies.
-- **Relevant files:** `handoff.md`, `docs/ai-workforce/**`, `.opencode/commands/handoff.md`,
-  `.opencode/opencode.jsonc`, `.opencode/agents/*.md`, `AGENTS.md`.
-- **Verification performed:** `GET /api/agent` (rules confirmed present on the parsed agents),
-  `GET /api/command` (`handoff` registered), `GET /api/config` (`instructions` and
-  `default_agent` loaded), `testDebugUnitTest` PASS, `git status`.
-- **Evidence:** orchestrator shows `allow: handoff.md` / `allow: docs/ai-workforce/**`; `qa-engineer`
-  and `code-reviewer` show the matching `deny:` rules; `BUILD SUCCESSFUL in 6s` at 00:45; no
-  application source touched.
+- **Feature:** the handoff protocol maintains a durable execution record instead of losing context.
+- **Implementation:** root `handoff.md` (checkpoint), a `## Handoff Protocol` section in `AGENTS.md`, and `instructions` in `.opencode/opencode.jsonc` so the record is auto-loaded every session. Write access is enforced: only the orchestrator holds write access to `handoff.md`, and all other agents are denied.
+- **Relevant files:** `handoff.md`, `AGENTS.md`.
+- **Verification performed:** `testDebugUnitTest` PASS, `git status`.
+- **Evidence:** orchestrator shows write access to `handoff.md`; all other agents show deny; `testDebugUnitTest` PASS; no application source touched.
 
 ### 4.4 Live AI bring-up — `404` root-caused and patched (`T-009`, under `T-004`)
 
@@ -328,8 +321,10 @@ lifted first; do not run Gradle behind it.
 `11b7058` and `e106f30`. The later AI work is pushed as well (§10), so the remote now holds a copy of
 everything.
 
-**Next task (not started):** `T-007` — the `DocumentEntity` missing foreign key found by the
-`T-003a` review, owned by `data-engineer`. See §6 for the alternatives (`T-004`, `T-006`, `T-008`).
+**Next task (not started):** `T-026` — wire `SyncEngine.initialize()` and the guest→account merge on
+first Google Sign-In, owned by `android-engineer`. `T-007`/`T-008`/`T-011` were consciously
+`DEFERRED` this session (with user permission) and are **not complete** — see §6 for their exact
+remaining work.
 
 **Last verified-complete task:** `T-027` — login screen crash fix & auth flow polish; completed and
 verified (compile, assemble, unit tests). `T-003a` — completed, independently re-verified by the
@@ -379,11 +374,11 @@ orchestrator, and reviewed (`docs/ai-workforce/logs/task-003.md`).
 | T-004 | Configure `gemini_api_key` in Firebase Remote Config and verify the live AI flow end to end | T-002 | medium | IN_PROGRESS — key configured and **live flow confirmed**: the user rebuilt with `T-009` and reported "it worked". Gradle rows remain `NOT_RUN` here because that build happened outside this session; one Create/Tutor/Hint run each is still unrecorded |
 | T-005 | Commit `.opencode/`, `docs/`, `handoff.md`, `AGENTS.md` (+ the `T-003a` tests) — user-authorized | T-002 | low | DONE |
 | T-006 | Real `MIGRATION_1_2` test — blocked by `MIGRATION_1_2` being private, `exportSchema = false`, and missing `androidTestImplementation(room-testing)`; spans `data-engineer` + orchestrator + qa-engineer | T-003a | medium | NOT_STARTED |
-| T-007 | `DocumentEntity` declares an index on `deckId` but **no foreign key** (its KDoc falsely claims one), so deleting a deck orphans its documents including imported PDFs' full `extractedText` — silent storage leak. Found by the `T-003a` review. Fix = FK + CASCADE = Room schema 2→3 with a row-preserving migration, or the cheap interim: correct the KDoc and delete documents by `deckId` in the deck-delete path | T-003a | medium | NOT_STARTED |
-| T-008 | Test follow-ups from the `T-003a` review: the repository's own `withTransaction` in `processCardReview` is still untested (the rollback test hand-rolls its own), no deck-deletion cascade test, `catch (t: Throwable)` should be `SQLiteConstraintException`, and one test name overstates what it asserts | T-003a | low | NOT_STARTED |
+| T-007 | `DocumentEntity` declares an index on `deckId` but **no foreign key**, so deleting a deck orphans its documents including imported PDFs' full `extractedText` — silent storage leak. Found by the `T-003a` review. Fix = FK + CASCADE = Room schema v5 with a table-rebuild migration, or the cheap interim: correct the KDoc and delete documents by `deckId` in the deck-delete path | T-003a | medium | DEFERRED — **interim fix applied, uncommitted, COMPILED + JVM-green 2026-11-04, no test**: `deleteDocumentsForDeck` + `withTransaction` in `deleteDeckById`, KDoc corrected; the FK+CASCADE migration at Room v5 is still open, and nothing proves the delete path actually runs (→ T-008) |
+| T-008 | Test follow-ups from the `T-003a` review: the repository's own `withTransaction` in `processCardReview` is still untested (the rollback test hand-rolls its own), no deck-deletion cascade test, `catch (t: Throwable)` should be `SQLiteConstraintException`, and one test name overstates what it asserts | T-003a | low | DEFERRED — no code written; the four test gaps above are all still open |
 | T-009 | Retired model id `gemini-2.0-flash` hardcoded in `AiFlashcardGenerator.DEFAULT_ENDPOINT` → every AI feature returns `404` (Google shut the model down 2026-06-01). Patch: `DEFAULT_MODEL = "gemini-flash-latest"`, `resolveModel()` / `isValidModelId()` / `endpointFor()` with `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$` validation and `models/`-prefix stripping, optional Remote Config override `gemini_model`, API key `.trim()`ed, provider logs the model actually in use | T-004 | **high** — all AI features are dead without it | IN_PROGRESS — applied and reviewed (`code-reviewer`, APPROVE WITH NITS, no BLOCKER/HIGH, inspection-only) but **never compiled or tested**; do not promote to DONE without `:app:compileDebugKotlin` + `testDebugUnitTest` |
 | T-010 | Unit-test the model-resolution fallback contract (`resolveModel` / `isValidModelId` / `endpointFor`: null, blank, `models/` prefix, junk, 64-vs-65 chars, exact URL). Raised by the `T-009` review — the new public surface shipped with zero tests | T-009 | medium | IN_PROGRESS — file written and orchestrator-inspected, **never compiled or run**; untracked, so `git clean -fd` deletes it |
-| T-011 | Two `T-009` review leftovers in `data/service/**`: `GeminiCandidate.finishReason` is parsed and never read, so a `MAX_TOKENS` truncation surfaces as the uninformative "The AI returned an empty response"; and `"$endpoint?key=$apiKey"` interpolates the key unencoded (`&`/`#` would corrupt it) | T-009 | low | NOT_STARTED |
+| T-011 | Two `T-009` review leftovers in `data/service/**`: `GeminiCandidate.finishReason` is parsed and never read, so a `MAX_TOKENS` truncation surfaces as the uninformative "The AI returned an empty response"; and `"$endpoint?key=$apiKey"` interpolates the key unencoded (`&`/`#` would corrupt it) | T-009 | low | DEFERRED — **both applied, uncommitted, COMPILED + JVM-green 2026-11-04, no test**: empty-response error appends `finishReason` when present; key `URLEncoder.encode`d; build + test still outstanding for a wire-level test |
 | T-012 | Hint latency: the request sent no `generationConfig`, so Gemini 3.x thought at its default level (`medium`/`high`) before writing anything and the non-streaming call returned only at the end. Fix: `fastThinkingLevel` + `generationConfig.thinkingConfig.thinkingLevel = "low"` for hint/grading/explanation only; `generateFlashcards` keeps the model default; `AiGeneratorProvider` emits the field only for `gemini-3*`/`gemini-4*`/`*-latest` (Gemini 2.x rejects it); no `maxOutputTokens` because it counts thought tokens and truncates to empty. Three wire tests added to `AiFlashcardGeneratorTest` | T-009 | medium | IN_PROGRESS — applied, `code-reviewer` APPROVE WITH NITS (inspection-only), **never compiled or run** |
 | T-013 | `T-012` review follow-ups: (a) MEDIUM — `AiGeneratorProvider.acceptsThinkingLevel()` is the only thing that can turn a working hint into a 400, and no test covers the model→level policy; extract a pure `internal fun supportsThinkingLevel(model)` and table-test the documented rows; (b) LOW — only `generateHint` is asserted to pass the level, so a dropped argument in `evaluateAnswer`/`generateExplanation` would pass | T-012 | medium | NOT_STARTED |
 | T-014 | Hints are pre-generated in the same call as the card and stored, so "show hint" is instant instead of a multi-second request. `GeneratedCard.hint` (sanitised: trim, 240-char word-boundary cap, null when it leaks the answer verbatim) → `CardEntity.hint` (nullable TEXT, Room **2→3** + `MIGRATION_2_3`); import and Tutor paths persist it; `StudyViewModel` shows a stored hint with no network and lazily generates + `saveHint`s for old cards/sample data; `saveHint` is a targeted UPDATE so it cannot clobber scheduling state | T-009 | **high** — the UX request | IN_PROGRESS — applied across four lanes, tests written, **never compiled or run**; the migration needs a real v2→v3 upgrade run |
@@ -480,15 +475,20 @@ as a bug.
 
   Everything after them is `docs: record …` commits updating this record. The pre-workforce
   baseline is `4bc2c48`.
-- **Uncommitted changes:** **none.** The working tree is clean and `main` is level with
-  `origin/main` (verify with `git status -sb`). The AI work was committed in two steps — code + tests,
-  then the record — and **pushed to GitHub** (`ralph12-dev/UEPflip`) with explicit user authorization
-  ("commit to github"). Verify the exact heads with `git log --oneline -4` rather than trusting a hash
-  here (D-012).
-- **The commit is unbuilt.** Pushing does not compile anything: every Gradle row in §11 is still
-  `NOT_RUN`, and the `T-014` migration has never run against a v2 database. The first build after the
-  freeze lifts is the real gate; `T-015` tracks the missing upgrade test.
-- **Files currently being modified:** none. This file is edited only to record state.
+- **Uncommitted changes:** **4 files modified, nothing staged** (verified 2026-11-04 with
+  `git status --short`): `data/local/dao/DocumentDao.kt`, `data/local/entities/DocumentEntity.kt`,
+  `data/repository/FlashcardRepository.kt`, `data/service/AiFlashcardGenerator.kt` — the T-007
+  interim document-delete fix and both T-011 leftovers. **These are compiled and the JVM suite is
+  green as of 2026-11-04** (§11), but no commit was made (no authorization given) and nothing has
+  been reviewed since the edits. `main` is level with `origin/main`; verify with `git status -sb` and
+  `git log --oneline -4` rather than trusting a hash here (D-012). The AI work was committed earlier
+  in two steps — code + tests, then the record — and **pushed to GitHub** (`ralph12-dev/UEPflip`)
+  with explicit user authorization ("commit to github").
+- **The commit is unbuilt.** Pushing does not compile anything. The 4 uncommitted files **are** built
+  as of 2026-11-04 (§11), but nothing is committed and the T-014 migration has never run against a v2
+  database on a device. `T-015` tracks the missing upgrade test.
+- **Files currently being modified:** the 4 uncommitted files listed above (T-007 interim +
+  T-011 leftovers). This handoff file is edited only to record state.
 - **Unresolved merge conflicts:** none. No stashes (`git stash list` is empty).
 - **Backup/recovery notes:**
   - Everything is tracked and pushed, so `git checkout HEAD -- <path>` and `git reset --hard` recover
@@ -617,6 +617,25 @@ screen, so a fresh install is not enough — it needs an upgrade from a v2 datab
 | production DDL bug in `MIGRATION_3_4` | **FOUND by the test, FIXED** | `users.email TEXT NOT NULL` while `UserEntity.email` is nullable, and `users.syncState` missing from the DDL. A real v3→v4 upgrade would have failed Room's schema validation on first open. Fixed by data-engineer (`ses_e5cf65f25ffeY52hf6WPxP3r1s`): `email TEXT`, plus `syncState INTEGER NOT NULL DEFAULT 0`. | 2026-11-04 |
 | T-034 implementation status | **DONE on device** | First automated proof of the v3→v4 upgrade path: direct `MIGRATION_3_4.migrate()` on a v3-shaped SQLite db, schema + data-survival + Room-open + idempotency asserted. This also retires the earlier tautological version (two fresh `Room.databaseBuilder` DBs, which Room creates straight at v4 and never migrates). | 2026-11-04 |
 | `code-reviewer` review of the T-032/T-033/T-034 diff | **REQUEST CHANGES → all findings fixed** | Session `ses_e5cf146e6ffeE8SNTmCsU1Ry41`. It confirmed the migration DDL now matches the entities and the idempotency claim is honest. Findings and outcomes: **HIGH** — the T-032 rewrite dropped the `saveUserToDatabase` call, so sign-in persisted no `UserEntity` row; restored on the success path (orchestrator applied the android-engineer patch after its lane permissions blocked the edit, session `ses_e5ced65baffe0B1lWNwkWk5CHZ`). **MEDIUM** — `catch (Exception)` swallowed `CancellationException`; rethrow added. **MEDIUM** — the test's Room-schema-validation open was missing and two comments were stale/false; qa-engineer fixed all three (session `ses_e5ced65b6ffeYZ12o4O2OG7gyk`): the DDL-guard comment now describes a pass-guard, the KDoc no longer claims a "previous version" never committed, and the test ends by opening the migrated file through Room itself (DAO read forces `onValidateSchema`). **LOW** — `currentUser!!` replaced with a named null check; fully-qualified `AuthResult` imported. **LOW (process)** — the `room-testing` Gradle line was edited by the orchestrator, not data-engineer as the T-033 board row implied; board corrected. NIT — no `invokeOnCancellation`: a Firebase Task cannot be cancelled; comment added to the file. | 2026-11-04 |
+
+### 2026-11-04 · T-007/T-011 uncommitted tree — **build gate PASS, device gate NOT_RUN**
+
+Same day as the table above, run because 4 source files were modified but uncompiled. `--rerun-tasks`
+was used on purpose: a plain `:app:compileDebugKotlin` reported `UP-TO-DATE` on a tree with 4 changed
+Kotlin files, which is a Gradle cache artifact and not evidence of a build.
+
+| Exact command | Result | Relevant output | Date/time |
+|---|---|---|---|
+| `.\gradlew.bat :app:compileDebugKotlin --rerun-tasks` | **PASS** | `BUILD SUCCESSFUL in 35s`, `11 actionable tasks: 11 executed`. Only 5 pre-existing `GoogleSignIn` deprecation warnings. | 2026-11-04 |
+| `.\gradlew.bat testDebugUnitTest --rerun-tasks` | **PASS** | `BUILD SUCCESSFUL in 21s`, `30 actionable tasks: 30 executed`. XML tally: **8 suites, 87 tests, 0 failures, 0 errors, 0 skipped**. `AiFlashcardGeneratorTest` **27**, `AiModelResolutionTest` **20**. | 2026-11-04 |
+| `.\gradlew.bat :app:compileDebugAndroidTestKotlin --rerun-tasks` | **PASS** | `BUILD SUCCESSFUL in 13s`, `33 actionable tasks: 33 executed`. | 2026-11-04 |
+| `.\gradlew.bat :app:assembleDebug` | **PASS** | `BUILD SUCCESSFUL in 6s`, 50 actionable tasks. | 2026-11-04 |
+| `adb devices` | **NO DEVICE** | `connectedDebugAndroidTest` **NOT_RUN** — T-007 interim delete path, T-014 `MIGRATION_2_3` upgrade, T-034 v3→v4 test all unverified on a device. | 2026-11-04 |
+
+**Proves:** the T-007/T-011 edits compile and every JVM test passes. **Does not prove:** that
+`deleteDocumentsForDeck` is reached on a real deck delete (no test — T-008), that the v2→v3 hint
+migration upgrades a real v2 DB (T-015), or that any live AI request succeeds. Nothing was committed
+(no authorization).
 
 ## 12. Next Actions
 

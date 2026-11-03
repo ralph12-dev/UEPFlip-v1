@@ -10,6 +10,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
+import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 /** A single flashcard produced by the AI. */
@@ -339,8 +340,15 @@ class AiFlashcardGenerator(
             throw AiGenerationException("AI features are not set up yet. Please try again later.")
         }
 
+        // URL-encode the key so a value containing '?', '&' or '#' cannot corrupt or shorten the
+        // query string. Keys are alphanumeric in practice, so this is defence rather than a known
+        // bug. The String overload is used instead of the Charset one because Android only gained
+        // that in API 33 and this app's minSdk is 26; "UTF-8" is supported on every JVM/Android
+        // build, so the declared UnsupportedEncodingException cannot occur.
+        val encodedKey = URLEncoder.encode(apiKey, "UTF-8")
+
         val request = Request.Builder()
-            .url("$endpoint?key=$apiKey")
+            .url("$endpoint?key=$encodedKey")
             .post(buildRequestBody(prompt, thinkingLevel).toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -398,7 +406,21 @@ class AiFlashcardGenerator(
             .trim()
 
         if (text.isBlank()) {
-            throw AiGenerationException("The AI returned an empty response. Please try again.")
+            // [GeminiCandidate.finishReason] is already on the wire model; when the payload is
+            // empty it explains why — most usefully MAX_TOKENS (output truncation), which is
+            // reachable because the model id is Remote Config and a swapped-in model may need a
+            // different output budget. Name it in the existing error rather than inventing a new
+            // error path. Absent/blank -> the message stays exactly as it was before.
+            val finishReason = gemini?.candidates
+                .orEmpty()
+                .firstNotNullOfOrNull { it.finishReason?.trim()?.takeIf(String::isNotEmpty) }
+            throw AiGenerationException(
+                if (finishReason != null) {
+                    "The AI returned an empty response (finishReason: $finishReason). Please try again."
+                } else {
+                    "The AI returned an empty response. Please try again."
+                }
+            )
         }
         return text
     }
