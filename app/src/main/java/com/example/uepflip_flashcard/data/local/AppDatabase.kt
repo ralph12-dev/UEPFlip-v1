@@ -182,6 +182,30 @@ abstract class AppDatabase : RoomDatabase() {
             return false
         }
 
+        /** MIGRATION_4_5: Add FK on documents.deckId referencing decks(id) with ON DELETE CASCADE.
+         * Since Room cannot do FK additions with ALTER TABLE, we do a table-rebuild migration:
+         * 1. Create `documents_new` with the FK
+         * 2. Copy data from `documents` to `documents_new`
+         * 3. Drop old `documents`
+         * 4. Rename `documents_new` to `documents`
+         */
+        internal val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `documents_new` (`id` INTEGER PRIMARY KEY AUTOINCREMENT " +
+                        "NOT NULL, `deckId` INTEGER NOT NULL, `uriString` TEXT NOT NULL, " +
+                        "`extractedText` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, " +
+                        "FOREIGN KEY(`deckId`) REFERENCES `decks`(`id`) ON DELETE CASCADE)"
+                )
+                db.execSQL(
+                    "INSERT INTO `documents_new` (`id`, `deckId`, `uriString`, `extractedText`, `createdAt`) " +
+                        "SELECT `id`, `deckId`, `uriString`, `extractedText`, `createdAt` FROM `documents`"
+                )
+                db.execSQL("DROP TABLE `documents`")
+                db.execSQL("ALTER TABLE `documents_new` RENAME TO `documents`")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -189,7 +213,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     DATABASE_NAME
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                 INSTANCE = instance
                 instance
