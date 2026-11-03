@@ -21,33 +21,38 @@ claim against the repository before acting on it.
 ## 2. Current Status
 
 - **Overall status:** `IN_PROGRESS` — features implemented and working. **Live AI works** (the user
-  rebuilt with the `T-009` patch and confirmed generation), and the `T-012` / `T-014` follow-on
-  changes are now **compile- and test-verified** (see §11, 2026-10-31). The full designer UI
-  (My Profile, Settings, Notifications, About, setup flow, redesigned Home/Stats/Decks) is merged
-  in (§4.7 / `T-016`).
-- **Last updated:** 2026-11-04 — Auth scaffold committed (Room v4, Firebase Auth, Google Sign-In, WorkManager sync, guest mode). All three core gates green.
-- **Current phase:** Google Sign-In authentication and user account management. Login flow wired with Guest mode; **Google Sign-In path has a known NPE** (callback race in `handleSignInResult`), tracked as `T-032` (`NOT_STARTED`). Room v4 with UserEntity and sync scaffolding added; `compileDebugAndroidTestKotlin` / `connectedDebugAndroidTest` not run since v4.
-- **Last verified build:** `:app:compileDebugKotlin`, `:app:testDebugUnitTest`, and
-  `:app:assembleDebug` all pass on 2026-11-04. 30 actionable tasks, all green.
-- **Last verified tests:** `testDebugUnitTest` 8 suites, **87 tests, 0 failures, 0 errors, 0 skipped**.
-  Verified on 2026-11-04.
-- **No device run has been recorded yet** for the merged UI or auth flow; instrumented tests were not
-  executed (require an attached device/emulator). `connectedDebugAndroidTest` and
-  `compileDebugAndroidTestKotlin` not run since Room v4 changes.
+  rebuilt with the `T-009` patch and confirmed generation). The full designer UI is merged in
+  (§4.7 / `T-016`). Auth scaffold (Room v4 + Firebase Auth + Google Sign-In + sync) committed.
+- **Last updated:** 2026-11-04 — T-032 (awaitable sign-in) and T-033 (internal migrations +
+  `room-testing`) done; T-034 migration test written and PASSED on device. `MIGRATION_3_4`'s users
+  DDL had two real defects the test caught (`email NOT NULL` on a nullable entity, missing
+  `syncState` column); both fixed and re-verified on the device.
+- **Current phase:** T-034 DONE. Next: T-026 (wire `SyncEngine.initialize()` + guest→account merge
+  on first Google Sign-In), then T-028/T-029/T-030 auth tests.
+- **Last verified build:** `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`,
+  `:app:testDebugUnitTest`, and `:app:assembleDebug` all pass on 2026-11-04.
+- **Last verified tests:** `testDebugUnitTest` 8 suites, **87 tests, 0 failures**.
+- **Device run recorded:** `connectedDebugAndroidTest` PASSED on TECNO CM7 (Android 16, API 36,
+  serial 140902553M001209) on 2026-11-04: `AppDatabaseTest` **13/13** including the v3→v4 migration
+  test, plus `ExampleInstrumentedTest` 1/1. Still no manual walkthrough of the login/onboarding UI.
 
 ## 3. Architecture and Constraints
 
 - **Existing architecture:** MVVM + Repository over Room. `data/local` (entities, DAOs,
-  `AppDatabase`), `data/repository/FlashcardRepository`, `domain/scheduler` (SM-2),
-  `domain/DeckStats`, `data/service` (AI), `ui/*` (screens). `AGENTS.md` is the authoritative
-  description — verify it still matches the code.
+  `AppDatabase`), `data/repository` (`FlashcardRepository`, `AuthRepository`, `SyncEngine`),
+  `domain/scheduler` (SM-2), `domain/DeckStats`, `data/service` (AI), `ui/*` (screens).
+  `AGENTS.md` is the authoritative description — verify it still matches the code.
 - **UI framework:** Kotlin + ViewBinding + Material 3, **light-only**
   (`Theme.Material3.Light.NoActionBar`, no `res/values-night/`). No Compose.
 - **Navigation:** one fragment shell in `ui/main` — `MainActivity` hosts Home / Decks / Stats /
-  Tutor tabs plus pushed `CreateFragment` and `StudyFragment`. Bottom-bar visibility is derived
-  from the `NavDestination` marker, never assigned at the call site.
-- **Persistence:** Room 2.8.5, `AppDatabase` version 3, `exportSchema = false`, hand-written
-  `MIGRATION_1_2` and `MIGRATION_2_3`. Multi-table writes run in `withTransaction` inside the repository.
+  Tutor tabs plus pushed `CreateFragment`, `StudyFragment`, `LoginFragment`, `MyProfileFragment`,
+  `SettingsFragment`, `NotificationsFragment`, `AboutFragment`, and the onboarding setup flow
+  (`SetupFeaturesFragment`, `SetupGoalFragment`, `SetupNotificationsFragment`). Bottom-bar visibility
+  is derived from the `NavDestination` marker, never assigned at the call site.
+- **Persistence:** Room 2.8.5, `AppDatabase` version 4, `exportSchema = false`, hand-written
+  `MIGRATION_1_2`, `MIGRATION_2_3`, and `MIGRATION_3_4`. `MIGRATION_3_4` adds `UserEntity` and
+  `userId`/`remoteId`/`syncState`/`lastSyncedAt` columns on all entities with `hasColumn` guards.
+  Multi-table writes run in `withTransaction` inside the repository.
 - **Network/API integrations:** Gemini `generateContent` via `data/service/AiFlashcardGenerator`
   (OkHttp + Moshi), API key from Firebase Remote Config key `gemini_api_key`; **the model id also
   comes from Remote Config** (`gemini_model`, default `gemini-flash-latest` via
@@ -55,6 +60,10 @@ claim against the repository before acting on it.
   hardcoded `gemini-2.0-flash` was retired and broke every AI feature); Apache PDFBox 2.0.24 for
   on-device PDF extraction; Firebase Remote Config for key resolution. The app does **not** use the
   Firebase AI Logic SDK.
+- **Authentication:** Firebase Auth with Google Sign-In (Google Play Services Auth) as sole provider.
+  Guest mode via SharedPreferences (`guest_mode` key). Auth state observed via
+  `AuthRepository.userFlow: MutableStateFlow<FirebaseUser?>`. `SyncEngine` uses WorkManager for
+  background sync to Firebase Realtime Database (last-write-wins).
 - **Minimum Android SDK:** 26.
 - **Required design conventions:** the `res/layout/` files match a designer's reference (25 files:
   22 wired — including the shared `view_app_header` include — plus 3 **unwired mockups** kept as
@@ -595,57 +604,44 @@ screen, so a fresh install is not enough — it needs an upgrade from a v2 datab
 - **Scope caveat:** this verifies compile + JVM behavior only — it does not prove the redesigned
   Home/Stats screens render correctly on a device.
 
+### 2026-11-04 — `T-032` / `T-033` / `T-034` — auth awaitable + migration on device, all green
+
+| Item | Result | Detail | Date/time |
+|---|---|---|---|
+| `.\gradlew.bat :app:compileDebugKotlin` | **PASS** | Covers the suspend rewrite in `AuthRepository` (T-032) and the `MIGRATION_3_4` DDL fix. | 2026-11-04 |
+| `.\gradlew.bat :app:compileDebugAndroidTestKotlin` | **PASS** | The new migration test (T-034) compiles. | 2026-11-04 |
+| `.\gradlew.bat testDebugUnitTest` | **PASS** | XML tally re-run: **87 tests, 0 failures**, 8 suites. | 2026-11-04 |
+| `.\gradlew.bat assembleDebug` | **PASS** | `BUILD SUCCESSFUL in 4s`. | 2026-11-04 |
+| `.\gradlew.bat connectedDebugAndroidTest` | **PASS** | On **TECNO CM7 (Android 16, API 36, serial 140902553M001209)**: `AppDatabaseTest` **13/13, 0 failures** + `ExampleInstrumentedTest` 1/1. | 2026-11-04 |
+| T-034 test iteration 1 (device) | **FAIL → diagnosed** | `SQLiteException: no such column: title` — the test queried `title` on `cards` (the column is `question`). Test bug, fixed by qa-engineer (`ses_e5cf37622ffestvRsTIyjQ050N`). The migration itself ran clean. | 2026-11-04 |
+| production DDL bug in `MIGRATION_3_4` | **FOUND by the test, FIXED** | `users.email TEXT NOT NULL` while `UserEntity.email` is nullable, and `users.syncState` missing from the DDL. A real v3→v4 upgrade would have failed Room's schema validation on first open. Fixed by data-engineer (`ses_e5cf65f25ffeY52hf6WPxP3r1s`): `email TEXT`, plus `syncState INTEGER NOT NULL DEFAULT 0`. | 2026-11-04 |
+| T-034 implementation status | **DONE on device** | First automated proof of the v3→v4 upgrade path: direct `MIGRATION_3_4.migrate()` on a v3-shaped SQLite db, schema + data-survival + Room-open + idempotency asserted. This also retires the earlier tautological version (two fresh `Room.databaseBuilder` DBs, which Room creates straight at v4 and never migrates). | 2026-11-04 |
+| `code-reviewer` review of the T-032/T-033/T-034 diff | **REQUEST CHANGES → all findings fixed** | Session `ses_e5cf146e6ffeE8SNTmCsU1Ry41`. It confirmed the migration DDL now matches the entities and the idempotency claim is honest. Findings and outcomes: **HIGH** — the T-032 rewrite dropped the `saveUserToDatabase` call, so sign-in persisted no `UserEntity` row; restored on the success path (orchestrator applied the android-engineer patch after its lane permissions blocked the edit, session `ses_e5ced65baffe0B1lWNwkWk5CHZ`). **MEDIUM** — `catch (Exception)` swallowed `CancellationException`; rethrow added. **MEDIUM** — the test's Room-schema-validation open was missing and two comments were stale/false; qa-engineer fixed all three (session `ses_e5ced65b6ffeYZ12o4O2OG7gyk`): the DDL-guard comment now describes a pass-guard, the KDoc no longer claims a "previous version" never committed, and the test ends by opening the migrated file through Room itself (DAO read forces `onValidateSchema`). **LOW** — `currentUser!!` replaced with a named null check; fully-qualified `AuthResult` imported. **LOW (process)** — the `room-testing` Gradle line was edited by the orchestrator, not data-engineer as the T-033 board row implied; board corrected. NIT — no `invokeOnCancellation`: a Firebase Task cannot be cancelled; comment added to the file. | 2026-11-04 |
+
 ## 12. Next Actions
 
-1. **Highest-priority action (when the freeze lifts):** get the pushed AI work compiled. Four patches
-   are complete and reviewed by inspection, but **nothing has compiled any of them**. `T-009`, `T-010`,
-   `T-012` and `T-014` all land in this one build:
-   - `.\gradlew.bat :app:compileDebugKotlin` then `.\gradlew.bat testDebugUnitTest` — **both are
-     suppressed by the user's standing `DO NOT BUILD AND TEST`; get that lifted first.** The run must
-     cover `AiModelResolutionTest` (`T-010`), the three `T-012` cases and the seven `T-014` hint cases
-     in `AiFlashcardGeneratorTest`, and the pre-existing suites.
-   - `curl "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY"` — outside the app,
-     proves which models the key can actually serve. If `gemini-flash-latest` is not listed, set the
-     Remote Config parameter `gemini_model` to one that is (a leading `models/` is stripped, so the id
-     can be pasted straight from that response); no code change needed. New values apply the next time
-     an AI screen is opened.
-   - **After installing the new build:** request a hint twice on one card set and compare. If it is
-     still slow, the next suspects in order are the per-screen `RemoteConfig.fetchAndActivate()` in
-     `AiGeneratorProvider.create()` and the absence of streaming — not the thinking level.
-2. **Review follow-ups from the `T-009` review** (`code-reviewer`, session
-   `ses_eafb9783dffe7vIY7q6Sb4xTuN`; APPROVE WITH NITS, no BLOCKER/HIGH — the MEDIUM findings are
-   already fixed in the tree). Still open, cheapest first:
-   - **`qa-engineer` — done, unrun:** `app/src/test/.../data/service/AiModelResolutionTest.kt` (20 tests,
-     pure, no new dependency) now pins `resolveModel` / `isValidModelId` / `endpointFor` for `null`,
-     blank, `models/`-prefix, junk, 64-vs-65 chars, and the exact URL. It is **untracked and never
-     compiled**; run it before trusting it. It is regression insurance for the fallback contract — it is
-     explicitly **not** a retirement detector, because no JVM test can know Google retired a model.
-   - **`ai-engineer`, low (`T-011`):** `GeminiCandidate.finishReason` is parsed and never read, so a
-     `MAX_TOKENS` truncation surfaces as the uninformative "The AI returned an empty response" — newly
-     relevant, because the model can now change without a release.
-   - **`ai-engineer`, low (`T-011`):** `"$endpoint?key=$apiKey"` interpolates the key unencoded.
-     Pre-existing; the new `.trim()` covers the realistic case, but encoding closes `&`/`#`.
-3. **Committed and pushed — done.** `T-009`, `T-010`, `T-012` and `T-014` went up in two commits
-   (code + tests, then the record) with the user's explicit "commit to github" authorization. **This is
-   not a verification step:** the commit is unbuilt, and the record says so. Do not promote a task to
-   `DONE` on the strength of the push.
-4. **Then close `T-004`** — the user confirmed live generation works after installing the `T-009`
-   build, which is the missing evidence. Record one Create, one Tutor grading and one Hint run on a
-   device before marking it `DONE`; the Gradle rows here are still `NOT_RUN`.
-5. **Open defect, unrelated to AI:** `T-007` — the `DocumentEntity` missing foreign key found by the
-   `T-003a` review, owned by `data-engineer`. A correct fix is Room schema 2→3 with a hand-written,
-   row-preserving migration (AGENTS.md forbids `fallbackToDestructiveMigration()`); the cheap interim
-   — correct the KDoc that falsely claims a foreign key, and delete documents by `deckId` in the
-   deck-delete path — can land first and alone.
-6. **Alternatives:** `T-006` (real `MIGRATION_1_2` test) is blocked by three cross-lane changes
-   already recorded in `docs/ai-workforce/task-board.md` — start from that section, do not re-derive
-   it. `T-008` closes the test holes the `T-003a` review identified (production-path rollback coverage,
-   a deck-deletion cascade test, `SQLiteConstraintException` instead of `catch (t: Throwable)`, and one
-   overstated test name).
-7. **`main` is pushed and level with `origin/main`.** The push was authorized explicitly by the user
-   on 2026-10-19 (`4bc2c48..4653eb2 main -> main`, repo `ralph12-dev/UEPflip`). Verify the head with
-   `git log --oneline -4` rather than trusting a hash recorded here (D-012). A further push needs its
-   own authorization; nothing is staged.
+1. **T-026 — wire sync into the sign-in flow (next task).** `SyncEngine.initialize()` has no caller
+   and `mergeGuestData()` never runs, so nothing schedules WorkManager sync and guest data never
+   merges into the account. Owned by `android-engineer`: call `SyncEngine.initialize()` from
+   `MainActivity` after sign-in resolves, and call `mergeGuestData()` on the first Google Sign-In.
+2. **Auth test coverage.** T-029 (SyncEngine instrumented) and T-030 (auth↔sync integration) are
+   `NOT_STARTED`; T-028 (AuthRepository JVM tests) is hard because Firebase Auth is not mockable
+   without an abstraction. Prioritize T-029, the device is attached.
+3. **OAuth config stays a user action (blocker).** Real Google Sign-In needs the Google provider
+   enabled in the Firebase console, the debug SHA-1 added, and `google-services.json` re-downloaded
+   (no `oauth_client` entry; `DEVELOPER_ERROR` until then). Until that lands, the Google button
+   shows the "not configured" message by design.
+4. **Open defect, unrelated to auth:** T-007 (the `DocumentEntity` missing foreign key) owned by
+   `data-engineer`. Fix is FK + CASCADE at Room v5, or the interim: correct the KDoc and delete
+   documents by `deckId` in the deck-delete path.
+5. **Migration debt:** T-006 and T-015 (v1→v2→v3 tests) remain open; the v3→v4 path is now proven,
+   so new migrations should follow the T-034 pattern (direct `migrate()` on a hand-built schema; the
+   files needed no Gradle change beyond `room-testing`).
+6. **AI leftovers:** T-011 (`finishReason` unread, unencoded key in the URL) and T-013
+   (untested model→thinking-level policy) stay low priority.
+7. **Untracked content:** the working tree has uncommitted changes for T-032/T-033/T-034
+   (AuthRepository, AppDatabase, AppDatabaseTest, app/build.gradle.kts, docs). Committing needs the
+   user's explicit authorization; nothing is staged.
 
 ## 13. Instructions for the Next Session
 

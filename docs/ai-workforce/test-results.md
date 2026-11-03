@@ -260,3 +260,52 @@ is the only proof.
 | `.\gradlew.bat assembleDebug --console=plain` | PASS | `BUILD SUCCESSFUL in 1s`, APK at `app/build/outputs/apk/debug/app-debug.apk` |
 | `.\gradlew.bat testDebugUnitTest --console=plain` | PASS | 8 suites, **87 tests, 0 failures, 0 errors**, 0 skipped |
 
+
+### 2026-11-04 · T-032 / T-033 / T-034 · auth awaitable + Room v4 migration tested on device
+
+| Command | Result | Output / notes |
+|---|---|---|
+| `.\gradlew.bat :app:compileDebugKotlin` | PASS | `BUILD SUCCESSFUL`. Covers the suspend rewrite in AuthRepository and the MIGRATION_3_4 DDL fix. |
+| `.\gradlew.bat :app:compileDebugAndroidTestKotlin` | PASS | `BUILD SUCCESSFUL`. The new migration test compiles. |
+| `.\gradlew.bat testDebugUnitTest --console=plain` | PASS | 8 suites, **87 tests, 0 failures, 0 errors, 0 skipped** (XML tally re-run). |
+| `.\gradlew.bat assembleDebug --console=plain` | PASS | `BUILD SUCCESSFUL in 4s`. |
+| `.\gradlew.bat connectedDebugAndroidTest --console=plain` | **PASS** | `BUILD SUCCESSFUL in 12s` on **TECNO CM7 (Android 16, API 36, serial 140902553M001209)**. `ExampleInstrumentedTest` 1/1, `AppDatabaseTest` **13/13, 0 failures, 0 errors**. |
+
+`migration_v3_to_v4_addsUserEntityAndSyncColumns` passed on real hardware. It seeds a v3-shape SQLite
+database, runs `MIGRATION_3_4.migrate()` directly, then asserts the users table, the four new sync
+columns on decks/cards/documents/reviews, data survival with defaults, a Room open (schema
+validation), and idempotency through a second migration run. This is the first automated proof of
+the v3→v4 upgrade path. `MIGRATION_1_2` and `MIGRATION_2_3` still have no automated test (T-006 /
+T-015).
+
+Changes in this batch:
+- T-032: AuthRepository `handleSignInResult` is now suspend and awaits Firebase through
+  `suspendCancellableCoroutine`. Fixes the NPE/callback race.
+- T-033: Room migrations `private` → `internal`, plus `room-testing` on the androidTest classpath.
+- T-034: migration test written and compile-verified by qa-engineer (session
+  `ses_e5cfcf9b9ffe0JWOGzDhL8WFgf`). The device run failed once on a test bug (the test queried
+  `title` on `cards`; the column is `question`, fixed in session `ses_e5cf37622ffestvRsTIyjQ050N`).
+  The test also surfaced a production DDL bug, fixed by data-engineer (session
+  `ses_e5cf65f25ffeY52hf6WPxP3r1s`): `users.email` was `NOT NULL` while `UserEntity.email` is
+  nullable, and `users.syncState` was missing entirely.
+
+### 2026-11-04 (second run) · post-review fixes re-verified on device
+
+| Command | Result | Output / notes |
+|---|---|---|
+| `.\gradlew.bat :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin :app:testDebugUnitTest` | PASS | `BUILD SUCCESSFUL in 11s`. Covers the restored persistence call, the cancellation-rethrow fix, the rewritten test comments, and the new Room-validation stage. |
+| `.\gradlew.bat connectedDebugAndroidTest --console=plain` | **PASS** | Second run on TECNO CM7: `AppDatabaseTest` **13/13, 0 failures** + `ExampleInstrumentedTest` 1/1, `BUILD SUCCESSFUL in 12s`. The migration test now EXECUTES its Room-open stage: Room reopened the migrated file, re-ran the guarded migrations, ran `onValidateSchema`, and served the seeded deck through `deckDao().getAllDecks()`. |
+| `.\gradlew.bat assembleDebug --console=plain` | PASS | `BUILD SUCCESSFUL in 2s`. |
+
+Fixes verified by this run (all from the `code-reviewer` REQUEST CHANGES, session
+`ses_e5cf146e6ffeE8SNTmCsU1Ry41`):
+- HIGH: `handleSignInResult` again persists the signed-in user through
+  `saveUserToDatabase` on the success path (the awaitable rewrite had dropped it). Orchestrator
+  applied the patch after android-engineer's lane permissions blocked editing `data/**`
+  (patch derived in session `ses_e5ced65baffe0B1lWNwkWk5CHZ`).
+- MEDIUM: `CancellationException` rethrows instead of becoming `Failed`.
+- MEDIUM: the test's stale/false comments rewritten; the missing Room open added.
+- LOW/NIT: `currentUser!!` gone, `AuthResult` imported, no-`invokeOnCancellation` rationale
+  commented in the file.
+
+
