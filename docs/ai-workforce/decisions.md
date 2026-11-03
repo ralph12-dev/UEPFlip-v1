@@ -252,3 +252,33 @@ Append-only. Never reverse an established decision without recording why here. N
 - **Status:** applied to `data/service/**`, `data/local/**`, `data/repository/**`,
   `ui/document/**`, `ui/study/**`, `ui/main/TutorViewModel.kt` plus tests; **not compiled and not
   tested** — the freeze still stands. Tracked as `T-014`, `IN_PROGRESS`.
+
+
+## D-016 — Firebase Auth + Google Sign-In as the authentication stack
+
+- **Decision:** The app uses Firebase Authentication with Google Sign-In (via Google Play Services Auth) as the only auth provider. No email/password, no anonymous auth.
+- **Reason:** Matches the designer mockup (`screen_login.xml`), keeps implementation simple, and Google Sign-In is the only provider the Firebase project has enabled. Guest mode (local-only persistence) covers the "no account" case.
+- **Alternatives rejected:** (a) Firebase Anonymous Auth — does not survive app reinstall or device migration, unlike the guest-mode SharedPreferences approach; (b) email/password — adds password recovery flow and UI the mockup doesn't have.
+- **Consequences:** `AuthRepository` is the single source of auth state (`userFlow: MutableStateFlow<FirebaseUser?>`). `MainActivity` owns the routing branch: signed-in || guest → onboarding? → Home : Onboarding; else → LoginFragment.
+
+## D-017 — Room schema version 4 with UserEntity and user-scoped entities
+
+- **Decision:** `AppDatabase` version bumped from 3 to 4. New `UserEntity` table. `CardEntity`, `DeckEntity`, `DocumentEntity`, `ReviewEntity` each gain nullable `userId`, `remoteId`, `syncState`, `lastSyncedAt` columns. `MIGRATION_3_4` uses `hasColumn` guards and `ALTER TABLE ... ADD COLUMN` for each new column (no table rebuilds).
+- **Reason:** Multi-device sync requires stable local IDs (`remoteId`) and a way to mark pending changes (`syncState`). `lastSyncedAt` enables incremental pulls. The FK from each entity to `UserEntity` is implicit via `userId` (not enforced by Room) to avoid cascade-delete complexity on a schema that already has migrations 1→2→3→4.
+- **Alternatives rejected:** (a) separate database per user — breaks the single-process Room instance model; (b) hard-coded `userId` in entities before auth is set — requires nullable columns anyway; (c) enforcing FKs at DB level — would require a v5 migration with table rebuilds for entities that already have 3 migrations.
+- **Consequences:** All existing local data survives the upgrade (columns default to `NULL`/`SYNCED`). `SyncEngine` interprets `syncState=PENDING` on local writes. The upgrade path from v2 (sample data) → v3 (hints) → v4 (sync) has **never been tested on device** — it is the single riskiest unverified change in the tree.
+
+## D-018 — WorkManager background sync with local-first mutations
+
+- **Decision:** `SyncEngine` schedules a `SyncWorker` (periodic, network-constrained) via WorkManager. Local mutations mark `syncState=PENDING`; the worker pushes pending rows to Firebase Realtime Database, pulls remote changes, and resolves conflicts by server timestamp (last-write-wins). `mergeGuestData()` moves guest-mode decks/cards to the signed-in user on first Google Sign-In.
+- **Reason:** WorkManager survives process death and respects Doze/standby. Local-first means the study loop never blocks on network. Firebase Realtime Database is already in the project (google-services.json has it).
+- **Alternatives rejected:** (a) `FirebaseFirestore` — requires a different data model and a Firestore dependency; (b) manual `AlarmManager` + `JobScheduler` — more boilerplate, less reliable across OEMs; (c) sync-on-app-start — user perceives latency.
+- **Consequences:** `SyncEngine.initialize()` **is not called anywhere** — periodic work is never scheduled. `mergeGuestData()` has no caller. `T-026` is `NOT_STARTED` and blocks end-to-end sync verification.
+
+## D-019 — Guest mode via SharedPreferences, no Anonymous Auth
+
+- **Decision:** Guest mode is a boolean `guest_mode` in the same SharedPreferences file as onboarding (`uepflip_prefs`). No Firebase Anonymous Auth token is created. On Google Sign-In, `mergeGuestData()` re-assigns local `userId=null` rows to the new `FirebaseUser.uid`.
+- **Reason:** Simpler than Anonymous Auth (no token refresh, no linking flow). The SharedPreferences flag survives app restart and reinstall (until data clear). Onboarding and settings screens already read/write this prefs file.
+- **Alternatives rejected:** Firebase Anonymous Auth with `linkWithCredential` on Google Sign-In — works but adds a whole auth state machine the current UI doesn't reflect.
+- **Consequences:** Guest data is truly local-only until the user signs in. If the user clears app data or uninstalls, guest decks are gone. `SettingsFragment` "Sign Out" clears `guest_mode` and returns to `LoginFragment`.
+

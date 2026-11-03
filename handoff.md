@@ -25,20 +25,15 @@ claim against the repository before acting on it.
   changes are now **compile- and test-verified** (see §11, 2026-10-31). The full designer UI
   (My Profile, Settings, Notifications, About, setup flow, redesigned Home/Stats/Decks) is merged
   in (§4.7 / `T-016`).
-- **Last updated:** 2026-11-03 — Google Sign-In authentication flow wired and verified green.
-  Compile, unit tests, and `assembleDebug` all pass.
-- **Current phase:** Google Sign-In authentication and user account management. Login flow is now
-  wired and working with Google Sign-In and Guest mode. **Login screen crash fixed** (ImageButton
-  type mismatch), copy updated for Google-only auth, bottom nav visibility derived from
-  `NavDestination` marker, back arrow hidden on first launch, Guest mode persists across restarts.
-  ActivityResult registration moved to `onViewCreated` (no more `IllegalStateException`). `AuthRepository`
-  sign-in path uses proper awaitable `signInWithCredential`.
+- **Last updated:** 2026-11-04 — Auth scaffold committed (Room v4, Firebase Auth, Google Sign-In, WorkManager sync, guest mode). All three core gates green.
+- **Current phase:** Google Sign-In authentication and user account management. Login flow wired with Guest mode; **Google Sign-In path has a known NPE** (callback race in `handleSignInResult`), tracked as `T-032` (`NOT_STARTED`). Room v4 with UserEntity and sync scaffolding added; `compileDebugAndroidTestKotlin` / `connectedDebugAndroidTest` not run since v4.
 - **Last verified build:** `:app:compileDebugKotlin`, `:app:testDebugUnitTest`, and
-  `:app:assembleDebug` all pass on 2026-11-03. 30 actionable tasks, all green.
+  `:app:assembleDebug` all pass on 2026-11-04. 30 actionable tasks, all green.
 - **Last verified tests:** `testDebugUnitTest` 8 suites, **87 tests, 0 failures, 0 errors, 0 skipped**.
-  Verified on 2026-11-03.
-- **No device run has been recorded yet** for the merged UI; instrumented tests were not executed
-  (require an attached device/emulator).
+  Verified on 2026-11-04.
+- **No device run has been recorded yet** for the merged UI or auth flow; instrumented tests were not
+  executed (require an attached device/emulator). `connectedDebugAndroidTest` and
+  `compileDebugAndroidTestKotlin` not run since Room v4 changes.
 
 ## 3. Architecture and Constraints
 

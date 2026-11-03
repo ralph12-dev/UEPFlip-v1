@@ -252,3 +252,11 @@ is the only proof.
 | `git diff --ignore-cr-at-eol --quiet` sweep + `git checkout --` | PASS | 128 EOL-only modifications reverted; 12 real changes left for the commit. Prevents line-ending noise from entering history. |
 | `connectedDebugAndroidTest` | NOT_RUN | no device/emulator attached during the merge. |
 | device run of the redesigned Home/Stats/Decks | NOT_RUN | no UI-level verification recorded; do not claim rendering correctness. |
+### 2026-11-03 · verification · all gates green
+
+| Command | Result | Output / notes |
+|---|---|---|
+| `.\gradlew.bat :app:compileDebugKotlin` | PASS | `BUILD SUCCESSFUL in 2s`, 30 actionable tasks |
+| `.\gradlew.bat assembleDebug --console=plain` | PASS | `BUILD SUCCESSFUL in 1s`, APK at `app/build/outputs/apk/debug/app-debug.apk` |
+| `.\gradlew.bat testDebugUnitTest --console=plain` | PASS | 8 suites, **87 tests, 0 failures, 0 errors**, 0 skipped |
+
