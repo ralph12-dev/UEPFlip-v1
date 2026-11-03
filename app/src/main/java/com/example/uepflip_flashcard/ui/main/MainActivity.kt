@@ -10,6 +10,8 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.lifecycleScope
 import com.example.uepflip_flashcard.R
+import com.example.uepflip_flashcard.data.local.AppDatabase
+import com.example.uepflip_flashcard.data.repository.AuthRepository
 import com.example.uepflip_flashcard.data.sample.SampleDataSeeder
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import kotlinx.coroutines.launch
@@ -22,6 +24,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private lateinit var nav: BottomNavigationView
+    private lateinit var authRepository: AuthRepository
 
     /** Guards against the bottom-nav listener re-entering when we set the selection ourselves. */
     private var selectingNavItem = false
@@ -36,6 +39,23 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
+        val db = AppDatabase.getDatabase(application)
+        authRepository = AuthRepository.getInstance(application, db.userDao())
+        setupNavigation()
+
+        if (authRepository.isUserSignedIn() || isGuestMode()) {
+            routeAfterEntry()
+        } else {
+            showLogin()
+        }
+
+        if (savedInstanceState == null) {
+            lifecycleScope.launch { SampleDataSeeder.seedIfFirstRun(applicationContext) }
+        }
+    }
+
+    /** Initialize bottom nav + single FragmentLifecycleCallbacks for visibility. */
+    private fun setupNavigation() {
         nav = findViewById(R.id.bottom_nav)
         nav.setOnItemSelectedListener { item ->
             if (selectingNavItem) return@setOnItemSelectedListener true
@@ -53,9 +73,6 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        // The navigation bar belongs to the screen that ends up on show, not to whoever started the
-        // transaction. Deriving it from the resumed fragment means returning from a pushed detail
-        // screen — or rotating while on one — restores it on its own (see [NavDestination]).
         supportFragmentManager.registerFragmentLifecycleCallbacks(
             object : FragmentManager.FragmentLifecycleCallbacks() {
                 override fun onFragmentResumed(fm: FragmentManager, f: Fragment) {
@@ -64,20 +81,6 @@ class MainActivity : AppCompatActivity() {
             },
             false
         )
-
-        if (savedInstanceState == null) {
-            // Developer convenience: a fresh debug build starts with sample decks so every screen has
-            // something real to show. No-op outside debuggable builds (see SampleDataSeeder).
-            lifecycleScope.launch { SampleDataSeeder.seedIfFirstRun(applicationContext) }
-
-            val onboardingSeen = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                .getBoolean(KEY_ONBOARDING_COMPLETE, false)
-            if (onboardingSeen) {
-                show(HomeFragment(), R.id.nav_home)
-            } else {
-                show(OnboardingFragment())
-            }
-        }
     }
 
     /**
@@ -112,6 +115,64 @@ class MainActivity : AppCompatActivity() {
             .commit()
     }
 
+    private fun enterApp() {
+        supportFragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)
+        nav.selectedItemId = R.id.nav_home
+        show(HomeFragment(), R.id.nav_home)
+    }
+
+    private fun routeAfterEntry() {
+        val onboardingComplete = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .getBoolean(KEY_ONBOARDING_COMPLETE, false)
+        if (onboardingComplete) {
+            enterApp()
+        } else {
+            show(OnboardingFragment(), null)
+        }
+    }
+
+    private fun showLogin() {
+        nav.visibility = View.GONE
+        show(LoginFragment(), null)
+    }
+
+    fun onUserSignedIn() {
+        clearGuestMode()
+        routeAfterEntry()
+    }
+
+    fun onGuestContinue() {
+        persistGuestMode()
+        routeAfterEntry()
+    }
+
+    fun signOut() {
+        lifecycleScope.launch {
+            authRepository.signOut()
+            clearGuestMode()
+            showLogin()
+        }
+    }
+
+    private fun isGuestMode(): Boolean {
+        return getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .getBoolean("guest_mode", false)
+    }
+
+    private fun persistGuestMode() {
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .edit()
+            .putBoolean("guest_mode", true)
+            .apply()
+    }
+
+    private fun clearGuestMode() {
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .edit()
+            .remove("guest_mode")
+            .apply()
+    }
+
     fun goHome() = show(HomeFragment(), R.id.nav_home)
     fun goDecks() = show(DecksFragment(), R.id.nav_decks)
     fun goStats() = show(StatsFragment(), R.id.nav_stats)
@@ -121,8 +182,5 @@ class MainActivity : AppCompatActivity() {
     fun goAbout() = push(AboutFragment())
     fun goCreate() = push(CreateFragment())
     fun goStudy(deckId: Long) = push(StudyFragment.newInstance(deckId))
-
-    /** Opens the tutor on a card so the AI can grade the student's recalled answer. */
-    fun goTutor(question: String, answer: String, deckId: Long) =
-        push(TutorFragment.newInstance(question, answer, deckId))
+    fun goTutor(question: String, answer: String, deckId: Long) = push(TutorFragment.newInstance(question, answer, deckId))
 }

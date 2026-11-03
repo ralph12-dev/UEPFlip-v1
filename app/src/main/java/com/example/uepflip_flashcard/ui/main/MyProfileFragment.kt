@@ -4,11 +4,8 @@ import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
 import com.example.uepflip_flashcard.R
+import com.google.android.material.snackbar.Snackbar
 
-/**
- * My Profile screen, opened by tapping the mascot circle (`btn_profile`) in an app header.
- * The gear opens Settings, where Notification Preferences, Privacy & Policy and About live.
- */
 class MyProfileFragment : Fragment(R.layout.screen_my_profile) {
 
     override fun onViewCreated(v: View, savedInstanceState: Bundle?) {
@@ -16,5 +13,11 @@ class MyProfileFragment : Fragment(R.layout.screen_my_profile) {
 
         v.findViewById<View>(R.id.btn_back).setOnClickListener { parentFragmentManager.popBackStack() }
         v.findViewById<View>(R.id.btn_settings).setOnClickListener { main.goSettings() }
+
+        // Sign out button
+        v.findViewById<View>(R.id.btn_sign_out).setOnClickListener {
+            main.signOut()
+            Snackbar.make(v, "Signed out successfully", Snackbar.LENGTH_SHORT).show()
+        }
     }
 }

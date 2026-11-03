@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.example.uepflip_flashcard.data.local.entities.CardEntity
+import com.example.uepflip_flashcard.data.local.entities.UserEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -48,12 +49,27 @@ interface CardDao {
     @Query("SELECT COUNT(*) FROM cards")
     suspend fun getTotalCardCount(): Int
 
+    @Query("SELECT * FROM cards WHERE userId = :userId")
+    fun getCardsByUserId(userId: String): List<CardEntity>
+
+    @Query("SELECT * FROM cards WHERE userId = :userId AND syncState = :syncState")
+    fun getPendingCards(userId: String, syncState: Int = UserEntity.PENDING): List<CardEntity>
+
+    @Query("SELECT * FROM cards WHERE syncState = :syncState")
+    suspend fun getCardsBySyncState(syncState: Int = UserEntity.PENDING): List<CardEntity>
+
+    @Query("UPDATE cards SET syncState = :syncState, lastSyncedAt = :lastSyncedAt WHERE id = :cardId")
+    suspend fun updateCardSyncState(cardId: Long, syncState: Int, lastSyncedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE cards SET remoteId = :remoteId, syncState = :syncState, lastSyncedAt = :lastSyncedAt WHERE id = :cardId")
+    suspend fun setCardRemoteId(cardId: Long, remoteId: String, syncState: Int = UserEntity.SYNCED, lastSyncedAt: Long = System.currentTimeMillis())
+
     @Query("SELECT * FROM cards")
     fun getAllCards(): Flow<List<CardEntity>>
 
-    @Query("SELECT COUNT(*) FROM cards WHERE nextReviewAt <= :currentTime OR nextReviewAt = 0")
-    suspend fun getDueCardCount(currentTime: Long): Int
-
     @Query("SELECT * FROM cards WHERE id = :cardId LIMIT 1")
     suspend fun getCardById(cardId: Long): CardEntity?
+
+    @Query("SELECT COUNT(*) FROM cards WHERE (nextReviewAt <= :currentTime OR nextReviewAt = 0)")
+    suspend fun getDueCardCount(currentTime: Long = System.currentTimeMillis()): Int
 }

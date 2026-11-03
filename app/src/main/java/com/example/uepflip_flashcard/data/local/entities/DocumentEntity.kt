@@ -21,5 +21,10 @@ data class DocumentEntity(
     val deckId: Long,
     val uriString: String,
     val extractedText: String = "",
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val userId: String? = null,
+    val remoteId: String? = null,
+    val syncState: Int = UserEntity.SYNCED,
+    val lastSyncedAt: Long = 0L
 )
+

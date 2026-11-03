@@ -40,5 +40,9 @@ data class CardEntity(
     val nextReviewAt: Long = 0L,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
-    val rating: Int = 0
+    val rating: Int = 0,
+    val userId: String? = null,
+    val remoteId: String? = null,
+    val syncState: Int = UserEntity.SYNCED,
+    val lastSyncedAt: Long = 0L
 )

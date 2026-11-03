@@ -74,10 +74,15 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    // Import the Firebase BoM
+    // Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:33.2.0"))
     // Firebase Remote Config
     implementation("com.google.firebase:firebase-config-ktx")
-    // Firebase Analytics (needed for Remote Config)
-    implementation("com.google.firebase:firebase-analytics-ktx")
+    // Firebase Auth, Database
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-database-ktx")
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+    
+    // WorkManager for background sync
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
 }

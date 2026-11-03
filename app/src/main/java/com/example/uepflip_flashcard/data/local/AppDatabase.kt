@@ -10,22 +10,26 @@ import com.example.uepflip_flashcard.data.local.dao.CardDao
 import com.example.uepflip_flashcard.data.local.dao.DeckDao
 import com.example.uepflip_flashcard.data.local.dao.DocumentDao
 import com.example.uepflip_flashcard.data.local.dao.ReviewDao
+import com.example.uepflip_flashcard.data.local.dao.UserDao
 import com.example.uepflip_flashcard.data.local.entities.CardEntity
 import com.example.uepflip_flashcard.data.local.entities.DeckEntity
 import com.example.uepflip_flashcard.data.local.entities.DocumentEntity
 import com.example.uepflip_flashcard.data.local.entities.ReviewEntity
+import com.example.uepflip_flashcard.data.local.entities.UserEntity
 
 @Database(
     entities = [
+        UserEntity::class,
         DeckEntity::class,
         CardEntity::class,
         DocumentEntity::class,
         ReviewEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
+    abstract fun userDao(): UserDao
     abstract fun deckDao(): DeckDao
     abstract fun cardDao(): CardDao
     abstract fun documentDao(): DocumentDao
@@ -90,6 +94,82 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds [UserEntity] table and sync fields with FK from decks to users.
+         */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `users` (`uid` TEXT NOT NULL, " +
+                        "`email` TEXT NOT NULL, `displayName` TEXT, `photoUrl` TEXT, " +
+                        "`createdAt` INTEGER NOT NULL DEFAULT 0, `lastSyncedAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "PRIMARY KEY(`uid`))"
+                )
+
+                if (!db.hasColumn("decks", "userId")) {
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `decks_new` (" +
+                            "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                            "`title` TEXT NOT NULL, " +
+                            "`description` TEXT NOT NULL, " +
+                            "`createdAt` INTEGER NOT NULL, " +
+                            "`updatedAt` INTEGER NOT NULL, " +
+                            "`userId` TEXT, " +
+                            "`remoteId` TEXT, " +
+                            "`syncState` INTEGER NOT NULL DEFAULT 0, " +
+                            "`lastSyncedAt` INTEGER NOT NULL DEFAULT 0, " +
+                            "FOREIGN KEY(`userId`) REFERENCES `users`(`uid`) ON UPDATE NO ACTION ON DELETE CASCADE)"
+                    )
+                    db.execSQL(
+                        "INSERT INTO `decks_new` (`id`, `title`, `description`, `createdAt`, `updatedAt`, `userId`, `remoteId`, `syncState`, `lastSyncedAt`) " +
+                            "SELECT `id`, `title`, `description`, `createdAt`, `updatedAt`, NULL, NULL, 0, 0 FROM `decks`"
+                    )
+                    db.execSQL("DROP TABLE `decks`")
+                    db.execSQL("ALTER TABLE `decks_new` RENAME TO `decks`")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_decks_userId` ON `decks` (`userId`)")
+                }
+
+                if (!db.hasColumn("cards", "userId")) {
+                    db.execSQL("ALTER TABLE `cards` ADD COLUMN `userId` TEXT")
+                }
+                if (!db.hasColumn("cards", "remoteId")) {
+                    db.execSQL("ALTER TABLE `cards` ADD COLUMN `remoteId` TEXT")
+                }
+                if (!db.hasColumn("cards", "syncState")) {
+                    db.execSQL("ALTER TABLE `cards` ADD COLUMN `syncState` INTEGER NOT NULL DEFAULT 0")
+                }
+                if (!db.hasColumn("cards", "lastSyncedAt")) {
+                    db.execSQL("ALTER TABLE `cards` ADD COLUMN `lastSyncedAt` INTEGER NOT NULL DEFAULT 0")
+                }
+
+                if (!db.hasColumn("documents", "userId")) {
+                    db.execSQL("ALTER TABLE `documents` ADD COLUMN `userId` TEXT")
+                }
+                if (!db.hasColumn("documents", "remoteId")) {
+                    db.execSQL("ALTER TABLE `documents` ADD COLUMN `remoteId` TEXT")
+                }
+                if (!db.hasColumn("documents", "syncState")) {
+                    db.execSQL("ALTER TABLE `documents` ADD COLUMN `syncState` INTEGER NOT NULL DEFAULT 0")
+                }
+                if (!db.hasColumn("documents", "lastSyncedAt")) {
+                    db.execSQL("ALTER TABLE `documents` ADD COLUMN `lastSyncedAt` INTEGER NOT NULL DEFAULT 0")
+                }
+
+                if (!db.hasColumn("reviews", "userId")) {
+                    db.execSQL("ALTER TABLE `reviews` ADD COLUMN `userId` TEXT")
+                }
+                if (!db.hasColumn("reviews", "remoteId")) {
+                    db.execSQL("ALTER TABLE `reviews` ADD COLUMN `remoteId` TEXT")
+                }
+                if (!db.hasColumn("reviews", "syncState")) {
+                    db.execSQL("ALTER TABLE `reviews` ADD COLUMN `syncState` INTEGER NOT NULL DEFAULT 0")
+                }
+                if (!db.hasColumn("reviews", "lastSyncedAt")) {
+                    db.execSQL("ALTER TABLE `reviews` ADD COLUMN `lastSyncedAt` INTEGER NOT NULL DEFAULT 0")
+                }
+            }
+        }
+
         private fun SupportSQLiteDatabase.hasColumn(table: String, column: String): Boolean {
             query("PRAGMA table_info(`$table`)").use { cursor ->
                 val nameIndex = cursor.getColumnIndex("name")
@@ -108,7 +188,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     DATABASE_NAME
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                 INSTANCE = instance
                 instance

@@ -217,7 +217,16 @@
                     android:paddingHorizontal="18dp">
 
                     <ImageView android:layout_width="22dp" android:layout_height="22dp" android:contentDescription="@null" android:src="@drawable/me_ic_logout" />
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="16dp" android:layout_weight="1" android:text="@string/me_sign_out" android:textColor="@color/me_danger" android:textSize="15sp" android:textStyle="normal" />
+                    <TextView
+                    android:id="@+id/btn_sign_out"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:text="@string/me_sign_out"
+                    android:textColor="@color/me_danger"
+                    android:textSize="15sp"
+                    android:textStyle="normal" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

@@ -5,7 +5,7 @@
 
     <!-- Login -->
     <string name="login_title">Sign in to your Account</string>
-    <string name="login_subtitle">Enter your email and\npassword to log in</string>
+    <string name="login_subtitle">Sign in with Google to sync your decks across devices, or continue as a guest.</string>
     <string name="auth_email">Email</string>
     <string name="auth_email_hint">you@example.com</string>
     <string name="auth_password">Password</string>
@@ -13,6 +13,9 @@
     <string name="auth_or">Or</string>
     <string name="login_google">Continue with Google</string>
     <string name="login_guest">Continue as Guest</string>
+    <string name="login_guest_note">Guest mode keeps your decks on this device only.</string>
+    <string name="login_google_unavailable">Google Sign-In is not configured for this build. Please use Guest mode or contact support.</string>
+    <string name="login_google_failed">Google Sign-In failed.</string>
     <string name="login_no_account">Don\'t have an account?</string>
     <string name="login_sign_up">Sign Up</string>
 

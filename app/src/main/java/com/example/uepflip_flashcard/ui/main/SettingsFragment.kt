@@ -2,13 +2,17 @@ package com.example.uepflip_flashcard.ui.main
 
 import android.os.Bundle
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.widget.SwitchCompat
 import androidx.fragment.app.Fragment
 import com.example.uepflip_flashcard.R
+import com.example.uepflip_flashcard.data.repository.AuthRepository
+import com.example.uepflip_flashcard.data.repository.SyncEngine
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
 
-/** Settings: an expandable "Study" group plus links to the other settings screens. */
 class SettingsFragment : Fragment(R.layout.fragment_settings) {
 
     override fun onViewCreated(v: View, savedInstanceState: Bundle?) {
@@ -40,48 +44,119 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             val labels = choices.map { getString(R.string.settings_cards_value, it) }.toTypedArray()
             MaterialAlertDialogBuilder(ctx)
                 .setTitle(R.string.settings_daily_goal)
-                .setSingleChoiceItems(labels, choices.indexOf(OnboardingFlow.dailyGoal(ctx))) { dialog, which ->
+                .setSingleChoiceItems(labels, choices.indexOf(OnboardingFlow.dailyGoal(ctx))) { _, which ->
                     OnboardingFlow.saveDailyGoal(ctx, choices[which])
                     render()
-                    dialog.dismiss()
                 }
+                .setPositiveButton(android.R.string.ok, null)
                 .show()
         }
 
         v.findViewById<View>(R.id.row_difficulty).setOnClickListener {
-            val values = intArrayOf(
-                AppSettings.DIFFICULTY_EASY,
-                AppSettings.DIFFICULTY_NORMAL,
-                AppSettings.DIFFICULTY_HARD
-            )
+            val choices = listOf(AppSettings.DIFFICULTY_EASY, AppSettings.DIFFICULTY_NORMAL, AppSettings.DIFFICULTY_HARD)
+            val labels = choices.map { difficultyLabel(it) }.toTypedArray()
+            val currentIndex = when (AppSettings.defaultDifficulty(ctx)) {
+                AppSettings.DIFFICULTY_EASY -> 0
+                AppSettings.DIFFICULTY_HARD -> 2
+                else -> 1
+            }
             MaterialAlertDialogBuilder(ctx)
                 .setTitle(R.string.settings_default_difficulty)
-                .setSingleChoiceItems(
-                    values.map { difficultyLabel(it) }.toTypedArray(),
-                    values.indexOf(AppSettings.defaultDifficulty(ctx))
-                ) { dialog, which ->
-                    AppSettings.saveDefaultDifficulty(ctx, values[which])
+                .setSingleChoiceItems(labels, currentIndex) { _, which ->
+                    AppSettings.saveDefaultDifficulty(ctx, choices[which])
                     render()
-                    dialog.dismiss()
                 }
+                .setPositiveButton(android.R.string.ok, null)
                 .show()
         }
 
-        val autoAdvance = v.findViewById<SwitchCompat>(R.id.sw_auto_advance)
-        autoAdvance.isChecked = AppSettings.autoAdvance(ctx)
-        autoAdvance.setOnCheckedChangeListener { _, on -> AppSettings.saveAutoAdvance(ctx, on) }
-        v.findViewById<View>(R.id.row_auto_advance).setOnClickListener { autoAdvance.toggle() }
-
         v.findViewById<View>(R.id.row_notifications).setOnClickListener { main.goNotifications() }
         v.findViewById<View>(R.id.row_about).setOnClickListener { main.goAbout() }
-        // Resolve sync conflict and Privacy & Policy have no screens yet.
+
+        // Account section - show if user is signed in
+        val authRepository = AuthRepository.getInstance(ctx.applicationContext as android.app.Application)
+        val isSignedIn = authRepository.isUserSignedIn()
+
+        // Find the About row and add account section after it
+        val aboutRow = v.findViewById<View>(R.id.row_about)
+
+        if (isSignedIn && aboutRow != null) {
+            val currentUser = authRepository.getCurrentUser()
+            val email = currentUser?.email ?: ""
+
+            val parent = aboutRow.parent as? LinearLayout
+            parent?.let { p ->
+                val aboutIndex = p.indexOfChild(aboutRow)
+
+                // Add a separator
+                val separator = View(ctx).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        1
+                    ).apply {
+                        setMargins(0, 24, 0, 16)
+                    }
+                    setBackgroundColor(requireContext().getColor(android.R.color.darker_gray))
+                }
+
+                // Account info text
+                val accountText = TextView(ctx).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        setMargins(16, 8, 16, 8)
+                    }
+                    text = getString(R.string.settings_account_signed_in, email)
+                    textSize = 14f
+                    setTextColor(requireContext().getColor(android.R.color.black))
+                }
+
+                // Sync Now button
+                val syncButton = MaterialButton(ctx).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        setMargins(16, 8, 16, 8)
+                    }
+                    text = "Sync Now"
+                    setOnClickListener {
+                        SyncEngine.syncNow(ctx, authRepository)
+                        Snackbar.make(v, "Sync started", Snackbar.LENGTH_SHORT).show()
+                    }
+                }
+
+                // Sign Out button
+                val signOutButton = MaterialButton(ctx).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        setMargins(16, 8, 16, 16)
+                    }
+                    text = "Sign Out"
+                    setBackgroundColor(requireContext().getColor(android.R.color.holo_red_dark))
+                    setOnClickListener {
+                        main.signOut()
+                        Snackbar.make(v, "Signed out successfully", Snackbar.LENGTH_SHORT).show()
+                    }
+                }
+
+                p.addView(separator, aboutIndex + 1)
+                p.addView(accountText, aboutIndex + 2)
+                p.addView(syncButton, aboutIndex + 3)
+                p.addView(signOutButton, aboutIndex + 4)
+            }
+        }
     }
 
-    private fun difficultyLabel(value: Int): String = getString(
-        when (value) {
-            AppSettings.DIFFICULTY_EASY -> R.string.settings_easy
-            AppSettings.DIFFICULTY_HARD -> R.string.hard
-            else -> R.string.normal
+    private fun difficultyLabel(difficulty: Int): String {
+        return when (difficulty) {
+            AppSettings.DIFFICULTY_EASY -> requireContext().getString(R.string.easy)
+            AppSettings.DIFFICULTY_NORMAL -> requireContext().getString(R.string.normal)
+            AppSettings.DIFFICULTY_HARD -> requireContext().getString(R.string.hard)
+            else -> requireContext().getString(R.string.normal)
         }
-    )
+    }
 }

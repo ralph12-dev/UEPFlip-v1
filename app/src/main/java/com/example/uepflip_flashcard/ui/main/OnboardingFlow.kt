@@ -4,12 +4,6 @@ import android.content.Context
 import android.widget.Toast
 import com.example.uepflip_flashcard.R
 
-/**
- * The tail of onboarding (features screen, study-goal screen) and where it ends.
- *
- * To change where the user lands when setup is finished or skipped (for example the Sign in screen),
- * edit [finish] -- both setup screens go through it.
- */
 object OnboardingFlow {
 
     const val KEY_DAILY_GOAL = "daily_goal_cards"
@@ -17,6 +11,7 @@ object OnboardingFlow {
     const val KEY_NOTIFY_DAILY = "notify_daily_reminder"
     const val KEY_NOTIFY_STREAK = "notify_streak_alerts"
     const val KEY_NOTIFY_SUGGESTIONS = "notify_deck_suggestions"
+    const val KEY_ONBOARDING_COMPLETE = "onboarding_complete"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
@@ -41,10 +36,30 @@ object OnboardingFlow {
             .apply()
     }
 
-    /** Records that onboarding has been shown so it does not replay on every cold start, then leaves it. */
+    /** Read the onboarding-completed flag from shared prefs. */
+    fun isComplete(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_ONBOARDING_COMPLETE, false)
+
+    /** Clear the onboarding-completed flag (used when signing out so a different account can re-onboard). */
+    fun reset(context: Context) {
+        prefs(context).edit().remove(KEY_ONBOARDING_COMPLETE).apply()
+    }
+
+    /** Launches the onboarding setup flow.
+     *  Returns true if the onboarding was not already completed.
+     */
+    fun startIfNeeded(context: Context): Boolean = if (isComplete(context)) false else true
+
+    /** Shows the features-selection screen and returns when the user finishes.
+     *  Called from MainActivity when the user enters the onboarding path.
+     */
+    fun showFeaturesScreen(main: MainActivity) {
+        main.push(SetupFeaturesFragment())
+    }
+
+    /** Mark onboarding complete and navigate to Home. */
     fun finish(main: MainActivity) {
-        prefs(main).edit().putBoolean(MainActivity.KEY_ONBOARDING_COMPLETE, true).apply()
-        Toast.makeText(main, R.string.onboarding_welcome_toast, Toast.LENGTH_SHORT).show()
+        prefs(main).edit().putBoolean(KEY_ONBOARDING_COMPLETE, true).apply()
         main.goHome()
     }
 }

@@ -18,6 +18,11 @@ okhttpVersion = "4.12.0"
 moshiVersion = "1.15.0"
 firebaseBom = "33.2.0"
 firebaseConfig = "18.1.2"
+firebaseAuth = "23.1.0"
+firebaseDatabase = "21.0.0"
+workRuntime = "2.9.1"
+playServicesAuth = "21.2.0"
+googleServices = "4.4.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -41,7 +46,12 @@ moshi = { group = "com.squareup.moshi", name = "moshi", version.ref = "moshiVers
 moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshiVersion" }
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-config = { group = "com.google.firebase", name = "firebase-config", version.ref = "firebaseConfig" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx", version.ref = "firebaseAuth" }
+firebase-database = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebaseDatabase" }
+work-runtime = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntime" }
+play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "kspVersion" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

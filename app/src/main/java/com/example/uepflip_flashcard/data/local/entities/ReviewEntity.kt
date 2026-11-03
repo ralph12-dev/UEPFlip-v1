@@ -25,5 +25,9 @@ data class ReviewEntity(
     val rating: Int, // 1 = Hard, 2 = Medium, 3 = Easy
     val previousInterval: Int,
     val resultingInterval: Int,
-    val aiScore: Float? = null
+    val aiScore: Float? = null,
+    val userId: String? = null,
+    val remoteId: String? = null,
+    val syncState: Int = UserEntity.SYNCED,
+    val lastSyncedAt: Long = 0L
 )

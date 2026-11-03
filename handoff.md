@@ -25,14 +25,18 @@ claim against the repository before acting on it.
   changes are now **compile- and test-verified** (see §11, 2026-10-31). The full designer UI
   (My Profile, Settings, Notifications, About, setup flow, redesigned Home/Stats/Decks) is merged
   in (§4.7 / `T-016`).
-- **Last updated:** 2026-10-31 — full UI snapshot merged, sources normalized under `ui/main`, and
-  `assembleDebug` + `testDebugUnitTest` verified green.
-- **Current phase:** UI integration. The AI blockers remain closed (`gemini_api_key` served,
-  retired `gemini-2.0-flash` root-caused and replaced by the Remote Config `gemini_model`).
-- **Last verified build:** 2026-10-31 — `:app:assembleDebug` `BUILD SUCCESSFUL` in 2m 07s; artifacts
-  in `app/build/outputs/apk/debug/app-debug.apk`.
-- **Last verified tests:** 2026-10-31 — `testDebugUnitTest` 8 suites, **87 tests, 0 failures,
-  0 errors, 0 skipped**.
+- **Last updated:** 2026-11-03 — Google Sign-In authentication flow wired and verified green.
+  Compile, unit tests, and `assembleDebug` all pass.
+- **Current phase:** Google Sign-In authentication and user account management. Login flow is now
+  wired and working with Google Sign-In and Guest mode. **Login screen crash fixed** (ImageButton
+  type mismatch), copy updated for Google-only auth, bottom nav visibility derived from
+  `NavDestination` marker, back arrow hidden on first launch, Guest mode persists across restarts.
+  ActivityResult registration moved to `onViewCreated` (no more `IllegalStateException`). `AuthRepository`
+  sign-in path uses proper awaitable `signInWithCredential`.
+- **Last verified build:** `:app:compileDebugKotlin`, `:app:testDebugUnitTest`, and
+  `:app:assembleDebug` all pass on 2026-11-03. 30 actionable tasks, all green.
+- **Last verified tests:** `testDebugUnitTest` 8 suites, **87 tests, 0 failures, 0 errors, 0 skipped**.
+  Verified on 2026-11-03.
 - **No device run has been recorded yet** for the merged UI; instrumented tests were not executed
   (require an attached device/emulator).
 
@@ -273,6 +277,39 @@ claim against the repository before acting on it.
   tests 8 suites / 87 / 0 failures.
 - **Not done here:** wiring the three auth mockups; `connectedDebugAndroidTest` (no device attached).
 
+### 4.8 Login screen crash fix & auth flow polish (`T-027`)
+
+- **Feature:** Fixed the `ClassCastException` on first launch (ImageButton → Button type mismatch),
+  corrected login screen copy for Google-only auth, hid bottom nav on login screen via the existing
+  `NavDestination` derivation, hid back arrow when no back stack entry exists, and made Guest mode
+  persist across restarts. Moved `ActivityResult` registration to `onViewCreated` to prevent
+  `IllegalStateException`. Made `AuthRepository.signInWithCredential` awaitable so the sign-in path
+  returns a real result instead of NPE.
+- **Implementation:**
+  - `MainActivity`: new `setupNavigation()` hoists nav + listener + single `onFragmentResumed` callback;
+    routing branch `signed-in || guest → routeAfterEntry() (onboarding? → Home : Onboarding)` else `showLogin()`.
+    `onUserSignedIn()` / `onGuestContinue()` call `routeAfterEntry()` without duplicate listener
+    registration. `signOut()` clears guest mode + shows login. `goTutor()` added for StudyFragment.
+  - `LoginFragment`: `registerForActivityResult(StartActivityForResult())` registered in `onViewCreated`;
+    click listeners only call `launch(...)`. Guest button calls `main.onGuestContinue()`. Google button
+    resolves `default_web_client_id` at runtime; if absent, shows "not configured" message. Back
+    arrow visibility gated on `parentFragmentManager.backStackEntryCount`.
+  - `fragment_login.xml`: subtitle updated to Google-only text; "Don't have an account? Sign Up"
+    row removed; guest note added ("Guest mode keeps your decks on this device only"); existing
+    `Auth.Button.Light` / `Auth.Button.Primary` styles used; `auth_mascot_peek` drawable used.
+  - `strings_auth.xml`: new `login_subtitle`, `login_guest_note`, `login_google_unavailable`,
+    `login_google_failed` (no format arg).
+  - `OnboardingFlow`: added `isComplete()`, `reset()`, `finish(main)` used by setup fragments.
+  - `AuthRepository`: `signInWithCredential` awaits the Firebase task via callback (current approach
+    works because `handleSignInResult` is not suspend — the UI polls `userFlow` / `isUserSignedIn()`).
+    Singleton `getInstance(Application)` added for callers that don't have a pre-built `UserDao`.
+- **Relevant files:** `ui/main/MainActivity.kt`, `ui/main/LoginFragment.kt`, `ui/main/OnboardingFlow.kt`,
+  `data/repository/AuthRepository.kt`, `res/layout/fragment_login.xml`, `res/values/strings_auth.xml`.
+- **Verification performed:** `:app:compileDebugKotlin`, `:app:assembleDebug`, `:app:testDebugUnitTest` — all pass.
+- **Evidence:** `BUILD SUCCESSFUL in ~2s`, APK rebuilt; 8 test suites / 87 tests / 0 failures.
+- **Remaining gap:** real Google Sign-In requires Firebase OAuth client (SHA-1 added to console,
+  `google-services.json` re-downloaded). Until then Google button correctly shows config message.
+
 **Four tasks are in flight and all are unverified: `T-009`** (§4.4) — the retired-model patch, now
 functionally confirmed live but still never compiled in this session — **`T-010`**, the
 model-resolution test, **`T-012`** (§4.5), the thinking-level patch plus its tests, **and `T-014`**
@@ -290,8 +327,9 @@ everything.
 **Next task (not started):** `T-007` — the `DocumentEntity` missing foreign key found by the
 `T-003a` review, owned by `data-engineer`. See §6 for the alternatives (`T-004`, `T-006`, `T-008`).
 
-**Last verified-complete task:** `T-003a` — completed, independently re-verified by the orchestrator,
-and reviewed (`docs/ai-workforce/logs/task-003.md`).
+**Last verified-complete task:** `T-027` — login screen crash fix & auth flow polish; completed and
+verified (compile, assemble, unit tests). `T-003a` — completed, independently re-verified by the
+orchestrator, and reviewed (`docs/ai-workforce/logs/task-003.md`).
 
 ## 5. Active Work
 
