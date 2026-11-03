@@ -53,7 +53,7 @@ abstract class AppDatabase : RoomDatabase() {
          * could already have created version 1 with these columns, and a bare `ALTER TABLE ... ADD
          * COLUMN` would then fail with "duplicate column name".
          */
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
+        internal val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 if (!db.hasColumn("cards", "createdAt")) {
                     db.execSQL("ALTER TABLE `cards` ADD COLUMN `createdAt` INTEGER NOT NULL DEFAULT 0")
@@ -86,7 +86,7 @@ abstract class AppDatabase : RoomDatabase() {
          * Guarded like [MIGRATION_1_2]: a development build may already have created the column, and
          * a bare `ALTER TABLE ... ADD COLUMN` would fail with "duplicate column name".
          */
-        private val MIGRATION_2_3 = object : Migration(2, 3) {
+        internal val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 if (!db.hasColumn("cards", "hint")) {
                     db.execSQL("ALTER TABLE `cards` ADD COLUMN `hint` TEXT")
@@ -97,12 +97,13 @@ abstract class AppDatabase : RoomDatabase() {
         /**
          * Adds [UserEntity] table and sync fields with FK from decks to users.
          */
-        private val MIGRATION_3_4 = object : Migration(3, 4) {
+        internal val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS `users` (`uid` TEXT NOT NULL, " +
-                        "`email` TEXT NOT NULL, `displayName` TEXT, `photoUrl` TEXT, " +
+                        "`email` TEXT, `displayName` TEXT, `photoUrl` TEXT, " +
                         "`createdAt` INTEGER NOT NULL DEFAULT 0, `lastSyncedAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "`syncState` INTEGER NOT NULL DEFAULT 0, " +
                         "PRIMARY KEY(`uid`))"
                 )
 

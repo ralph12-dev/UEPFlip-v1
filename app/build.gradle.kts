@@ -73,6 +73,7 @@ dependencies {
     testImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.room.testing)
 
     // Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:33.2.0"))

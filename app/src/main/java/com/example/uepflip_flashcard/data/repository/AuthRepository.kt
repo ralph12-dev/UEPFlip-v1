@@ -10,17 +10,21 @@ import com.example.uepflip_flashcard.data.local.AppDatabase
 import com.example.uepflip_flashcard.data.local.dao.UserDao
 import com.example.uepflip_flashcard.data.local.entities.UserEntity
 import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class AuthRepository(
     private val app: Application,
@@ -84,7 +88,7 @@ class AuthRepository(
         }
     }
 
-    fun handleSignInResult(data: Intent?): SignInResult {
+    suspend fun handleSignInResult(data: Intent?): SignInResult {
         if (data == null) {
             return SignInResult.Cancelled("No data")
         }
@@ -95,24 +99,36 @@ class AuthRepository(
             if (idToken == null) {
                 return SignInResult.Cancelled("No ID token")
             }
-            signInWithCredential(idToken)
-            return SignInResult.Success(currentUser!!)
+            val result = signInWithCredential(idToken)
+            val firebaseUser = result.user
+                ?: throw IllegalStateException("Sign-in succeeded but returned no user")
+            currentUser = firebaseUser
+            // Fire-and-forget, as in the pre-awaitable callback path: record the signed-in
+            // user locally without making the sign-in flow wait on the DB write.
+            CoroutineScope(Dispatchers.IO).launch { saveUserToDatabase(firebaseUser) }
+            return SignInResult.Success(firebaseUser)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             return SignInResult.Failed(e)
         }
     }
 
-    private fun signInWithCredential(idToken: String) {
+    private suspend fun signInWithCredential(idToken: String): AuthResult {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
-        auth?.signInWithCredential(credential)?.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                currentUser = task.result.user
-                CoroutineScope(Dispatchers.IO).launch {
-                    saveUserToDatabase(currentUser)
+        // No invokeOnCancellation: a Firebase Task cannot be cancelled, and completing a
+        // continuation that was already cancelled is a safe no-op.
+        return suspendCancellableCoroutine<AuthResult> { cont ->
+            auth?.signInWithCredential(credential)?.addOnCompleteListener { firebaseTask ->
+                if (firebaseTask.isSuccessful) {
+                    cont.resume(firebaseTask.result!!)
+                } else {
+                    cont.resumeWithException(firebaseTask.exception ?: IllegalStateException("Sign in failed"))
                 }
+            } ?: run {
+                Log.e("AuthRepository", "Auth not initialized")
+                cont.resumeWithException(IllegalStateException("Auth not initialized"))
             }
-        } ?: run {
-            Log.e("AuthRepository", "Auth not initialized")
         }
     }
 
