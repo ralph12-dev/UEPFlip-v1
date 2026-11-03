@@ -80,7 +80,7 @@ object AiGeneratorProvider {
         // one-sentence answer. Gemini 2.x rejects `thinkingLevel` (it uses `thinkingBudget`), so for
         // those ids the request stays exactly as it was.
         val fastThinkingLevel =
-            if (acceptsThinkingLevel(model)) AiFlashcardGenerator.THINKING_LEVEL_LOW else null
+            if (supportsThinkingLevel(model)) AiFlashcardGenerator.THINKING_LEVEL_LOW else null
 
         return AiFlashcardGenerator(
             apiKey,
@@ -96,9 +96,14 @@ object AiGeneratorProvider {
      * error, so anything unrecognised (including a pinned Gemini 2.x id chosen through Remote
      * Config) keeps the previous, config-free request. The `-latest` aliases always point at the
      * current generation, which is why the default `gemini-flash-latest` qualifies.
+     *
+     * Note: `thinkingLevel` is only supported on Gemini 3.x and 4.x models. Gemini 2.x models
+     * use `thinkingBudget` instead, and an unrecognised field causes a 400 error.
      */
-    private fun acceptsThinkingLevel(model: String): Boolean =
-        model.startsWith("gemini-3") ||
+    internal fun supportsThinkingLevel(model: String): Boolean {
+        // gemini-3.x, gemini-4.x, and any *-latest alias support thinkingLevel
+        return model.startsWith("gemini-3") ||
             model.startsWith("gemini-4") ||
             model.endsWith("-latest")
+    }
 }
